@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* Moltbook Theme - Light Mode */
+    --moltbook-orange: 16 100% 50%;      /* #ff4500 */
+    --moltbook-cyan: 163 100% 42%;       /* #00d4aa */
+    --moltbook-blue: 207 100% 41%;       /* #0079d3 */
+
+    --background: 210 14% 97%;           /* #f6f7f8 */
+    --foreground: 0 0% 10%;              /* #1a1a1b */
+
+    --card: 0 0% 100%;                   /* #ffffff */
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 16 100% 50%;              /* Orange */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 14% 93%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 210 14% 93%;
+    --muted-foreground: 0 0% 49%;        /* #7c7c7c */
+
+    --accent: 163 100% 42%;              /* Cyan */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 80%;                  /* #cccccc */
+    --input: 0 0% 80%;
+    --ring: 16 100% 50%;
+
+    /* Header */
+    --header-bg: 0 0% 10%;               /* #1a1a1b */
+    --header-foreground: 0 0% 100%;
+
+    /* Chart colors */
+    --chart-1: 16 100% 50%;
+    --chart-2: 163 100% 42%;
+    --chart-3: 207 100% 41%;
+    --chart-4: 45 100% 50%;
+    --chart-5: 280 70% 50%;
+
+    /* Sidebar */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 16 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 14% 95%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 80%;
+    --sidebar-ring: 16 100% 50%;
+  }
+
+  .dark {
+    /* Dark Mode */
+    --background: 0 0% 7%;               /* #121212 */
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 16 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 163 100% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 16 100% 50%;
+
+    --header-bg: 0 0% 7%;
+    --header-foreground: 0 0% 95%;
+
+    /* Chart colors */
+    --chart-1: 16 100% 55%;
+    --chart-2: 163 100% 50%;
+    --chart-3: 207 100% 50%;
+    --chart-4: 45 100% 55%;
+    --chart-5: 280 70% 55%;
+
+    /* Sidebar */
+    --sidebar: 0 0% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 16 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 16 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 14px;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card/80 backdrop-blur-md border border-border/50;
+  }
+}

@@ -1,3 +1,4 @@
+// Trade flow visualization nodes
 export { TokenInputNode } from "./token-input-node";
 export { BridgeNode } from "./bridge-node";
 export { SwapNode } from "./swap-node";

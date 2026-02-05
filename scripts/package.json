@@ -1,0 +1,21 @@
+{
+  "name": "moltrades-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:quotes": "npx tsx src/test-quotes.ts",
+    "test:execute": "npx tsx src/test-execute.ts",
+    "test:protocols": "npx tsx src/test-all-protocols.ts",
+    "test:cross-chain": "npx tsx src/test-cross-chain.ts"
+  },
+  "dependencies": {
+    "@lifi/sdk": "^3.15.4",
+    "viem": "^2.45.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3",
+    "@types/node": "^22.0.0"
+  }
+}

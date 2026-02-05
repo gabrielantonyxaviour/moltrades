@@ -538,3 +538,4 @@ export function getAllDeployments(): ProtocolDeployment[] {
 export function getTokenAddress(chainId: ChainId, symbol: string): Address | undefined {
   return TOKENS[chainId]?.[symbol];
 }
+// Protocol types: aave_v3, compound_v3, moonwell, morpho_vault, erc4626, weth_wrap

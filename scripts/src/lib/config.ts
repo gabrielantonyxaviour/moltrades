@@ -95,3 +95,4 @@ export const TOKEN_ADDRESSES = {
     WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' as Address,
   },
 } as const;
+// Integrator: ethglobal-playground (whitelisted)

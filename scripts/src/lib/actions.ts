@@ -234,3 +234,4 @@ export function getWethAddress(chainId: ChainId): Address | undefined {
 export function hasWethSupport(chainId: ChainId): boolean {
   return chainId in WETH_ADDRESSES;
 }
+// Supported actions: wrap, approve, deposit (Aave supply, Compound supply, Moonwell mint, ERC4626 deposit)

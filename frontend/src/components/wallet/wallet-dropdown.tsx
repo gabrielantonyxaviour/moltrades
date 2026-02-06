@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { useWallets as useSolanaWallets } from "@privy-io/react-auth/solana"
 import { useCreateWallet } from "@privy-io/react-auth/extended-chains"
 import { useSetActiveWallet } from "@privy-io/wagmi"
-import { Copy, Check, LogOut, Wallet, ChevronDown } from "lucide-react"
+import { Copy, Check, LogOut, Wallet, ChevronDown, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -188,6 +189,12 @@ export function WalletDropdown() {
                 >
                   <Wallet className="h-4 w-4 mr-2" />
                   Fund Wallet
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="focus:bg-transparent focus:text-inherit">
+                  <Link href="/my-agents">
+                    <Bot className="h-4 w-4 mr-2" />
+                    My Agents
+                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </>

@@ -59,7 +59,7 @@ export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h2 className="font-bold text-sm">TRADE BUILDER</h2>
+          <h2 className="font-bold text-sm">Trade Builder</h2>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           Describe your trade in natural language

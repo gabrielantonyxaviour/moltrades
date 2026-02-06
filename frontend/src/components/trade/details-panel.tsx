@@ -48,7 +48,7 @@ export function DetailsPanel({
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2">
           <Settings className="w-5 h-5 text-muted-foreground" />
-          <h2 className="font-bold text-sm">DETAILS</h2>
+          <h2 className="font-bold text-sm">Details</h2>
         </div>
       </div>
 
@@ -57,7 +57,7 @@ export function DetailsPanel({
         {hasFlow && (
           <div className="p-4 border-b border-border">
             <h3 className="text-xs font-semibold text-muted-foreground mb-3">
-              ROUTE SUMMARY
+              Route Summary
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
@@ -82,7 +82,7 @@ export function DetailsPanel({
         {selectedNode && (
           <div className="p-4 border-b border-border">
             <h3 className="text-xs font-semibold text-muted-foreground mb-3">
-              SELECTED STEP
+              Selected Step
             </h3>
             <div className="bg-secondary rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
@@ -120,7 +120,7 @@ export function DetailsPanel({
         {executionState.logs.length > 0 && (
           <div className="p-4">
             <h3 className="text-xs font-semibold text-muted-foreground mb-3">
-              EXECUTION LOG
+              Execution Log
             </h3>
             <div className="space-y-2">
               {executionState.logs.map((log, i) => (
@@ -167,17 +167,17 @@ export function DetailsPanel({
           {executionState.status === "executing" ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              EXECUTING...
+              Executing...
             </>
           ) : executionState.status === "complete" ? (
             <>
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              COMPLETED
+              Completed
             </>
           ) : (
             <>
               <Play className="w-4 h-4 mr-2" />
-              EXECUTE TRADE
+              Execute Trade
             </>
           )}
         </Button>

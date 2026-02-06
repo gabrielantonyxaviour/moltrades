@@ -1,8 +1,8 @@
 "use client";
 
-import { createConfig, http } from "wagmi";
+import { createConfig } from "@privy-io/wagmi";
+import { http } from "wagmi";
 import { mainnet, arbitrum, base, optimism, polygon, bsc, avalanche, gnosis, scroll, linea } from "wagmi/chains";
-import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
 
 // =============================================================================
 // CHAINS
@@ -27,15 +27,6 @@ export const supportedChains = [
 
 export const wagmiConfig = createConfig({
   chains: supportedChains,
-  connectors: [
-    injected(),
-    coinbaseWallet({
-      appName: "Moltrades",
-    }),
-    walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "demo-project-id",
-    }),
-  ],
   transports: {
     [mainnet.id]: http(),
     [arbitrum.id]: http(),

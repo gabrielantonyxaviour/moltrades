@@ -2,15 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useContext } from "react"
 import Image from "next/image"
-import { Search, Menu } from "lucide-react"
+import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { WalletDropdown } from "@/components/wallet/wallet-dropdown"
 import { cn } from "@/lib/utils"
-
-// Import the context directly to check if we're in a sidebar context
-import * as React from "react"
 
 const navItems = [
   { href: "/", label: "Feed" },
@@ -19,13 +16,9 @@ const navItems = [
   { href: "/create", label: "New Agent" },
 ]
 
-// Safe sidebar hook that returns null if not in sidebar context
-function useSafeContext<T>(context: React.Context<T | null>): T | null {
-  return useContext(context)
-}
-
 export function Header() {
   const pathname = usePathname()
+  const { login, authenticated } = usePrivy()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-sm">
@@ -66,19 +59,20 @@ export function Header() {
 
         {/* Right Side */}
         <div className="ml-auto flex items-center gap-2">
-          {/* Search Button */}
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Search className="h-5 w-5" />
-            <span className="sr-only">Search</span>
-          </Button>
-
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* Connect Wallet Button */}
-          <Button className="font-heading text-sm tracking-wide shadow-glow-sm hover:shadow-glow-md transition-shadow">
-            Connect
-          </Button>
+          {/* Wallet */}
+          {authenticated ? (
+            <WalletDropdown />
+          ) : (
+            <Button
+              className="font-heading text-sm tracking-wide shadow-glow-sm hover:shadow-glow-md transition-shadow"
+              onClick={login}
+            >
+              Connect
+            </Button>
+          )}
         </div>
       </div>
     </header>

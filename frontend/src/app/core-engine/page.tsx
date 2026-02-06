@@ -11,24 +11,14 @@ import { FlowCanvas } from "@/components/trade/flow-canvas";
 
 import { useConversations } from "@/hooks/use-conversations";
 import { useClaudeStream } from "@/hooks/use-claude-stream";
-import { parseIntent, isValidIntent } from "@/lib/lifi/intent-parser";
 import { generateFlowFromIntent } from "@/lib/lifi/flow-generator";
 import { SYSTEM_PROMPT } from "@/lib/core-engine/system-prompt";
+import {
+  parseRouteFromResponse,
+  parseRouteFromLogEntries,
+} from "@/lib/core-engine/route-parser";
 
 import type { EngineState, LogEntry } from "@/lib/core-engine/types";
-
-function tryExtractIntent(userMessages: string[]) {
-  for (let i = userMessages.length - 1; i >= 0; i--) {
-    const intent = parseIntent(userMessages[i]);
-    if (isValidIntent(intent)) return intent;
-  }
-  if (userMessages.length > 1) {
-    const combined = userMessages.join(" ");
-    const intent = parseIntent(combined);
-    if (isValidIntent(intent)) return intent;
-  }
-  return null;
-}
 
 export default function CoreEnginePage() {
   const [engineState, setEngineState] = useState<EngineState>("idle");
@@ -89,11 +79,9 @@ export default function CoreEnginePage() {
         addMessage(activeId, { role: "assistant", content: text });
       }
 
-      if (activeConversation) {
-        const userTexts = activeConversation.messages
-          .filter((m) => m.role === "user")
-          .map((m) => m.content);
-        const intent = tryExtractIntent(userTexts);
+      // 1. Try to extract route from the AI's latest response text
+      if (text) {
+        const intent = parseRouteFromResponse(text);
         if (intent) {
           const { nodes, edges } = generateFlowFromIntent(intent);
           setFlowNodes(nodes);
@@ -101,6 +89,17 @@ export default function CoreEnginePage() {
         }
       }
 
+      // 2. If no route in latest text, scan all AI text log entries
+      if (!text && activeConversation) {
+        const intent = parseRouteFromLogEntries(activeConversation.logEntries);
+        if (intent) {
+          const { nodes, edges } = generateFlowFromIntent(intent);
+          setFlowNodes(nodes);
+          setFlowEdges(edges);
+        }
+      }
+
+      // Title from first user message
       if (activeConversation && activeConversation.messages.length <= 2) {
         const firstUserMsg = activeConversation.messages.find(
           (m) => m.role === "user"
@@ -165,10 +164,8 @@ export default function CoreEnginePage() {
       const conv = conversations.find((c) => c.id === id);
       if (conv && conv.messages.length > 0) {
         setEngineState("active");
-        const userTexts = conv.messages
-          .filter((m) => m.role === "user")
-          .map((m) => m.content);
-        const intent = tryExtractIntent(userTexts);
+        // Re-extract route from AI responses in this conversation
+        const intent = parseRouteFromLogEntries(conv.logEntries);
         if (intent) {
           const { nodes, edges } = generateFlowFromIntent(intent);
           setFlowNodes(nodes);

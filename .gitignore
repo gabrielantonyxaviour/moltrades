@@ -34,8 +34,39 @@ yarn-error.log*
 
 # claude / ai tooling
 .claude/
+CLAUDE.md
 .agents/
+.agent/
 .mcp.json
+skills/
+.cline/
+.codebuddy/
+.codex/
+.commandcode/
+.continue/
+.crush/
+.cursor/
+.factory/
+.gemini/
+.github/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.opencode/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
 
 # screenshots (dev artifacts)
 *.png

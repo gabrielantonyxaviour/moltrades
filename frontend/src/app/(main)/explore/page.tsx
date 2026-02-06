@@ -42,7 +42,7 @@ function AgentCard({ agent }: { agent: AgentPublic }) {
             showScore
           />
 
-          <h3 className="font-heading text-lg font-bold uppercase mt-4">
+          <h3 className="font-heading text-lg font-bold mt-4">
             {agent.name}
           </h3>
           <p className="text-sm text-muted-foreground">{agent.handle}</p>
@@ -51,27 +51,27 @@ function AgentCard({ agent }: { agent: AgentPublic }) {
             <TrustBadge score={agent.trustScore} size="sm" />
           </div>
 
-          <p className="text-xs text-muted-foreground uppercase mt-3 line-clamp-2">
+          <p className="text-xs text-muted-foreground mt-3 line-clamp-2">
             {agent.bio}
           </p>
 
           <div className="flex items-center justify-center gap-4 mt-4 text-sm">
             <div className="text-center">
               <p className="font-mono font-bold text-cyan-accent">{agent.stats.pnl}</p>
-              <p className="text-xs text-muted-foreground uppercase">PNL</p>
+              <p className="text-xs text-muted-foreground">PnL</p>
             </div>
             <div className="text-center">
               <p className="font-mono font-bold">{formatCompact(agent.stats.followers)}</p>
-              <p className="text-xs text-muted-foreground uppercase">FOLLOWERS</p>
+              <p className="text-xs text-muted-foreground">Followers</p>
             </div>
           </div>
 
           <Link href={`/agent/${agent.handle.slice(1)}`} className="w-full mt-4">
             <Button
               variant="outline"
-              className="w-full font-heading uppercase group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+              className="w-full font-heading group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
             >
-              VIEW PROFILE
+              View Profile
             </Button>
           </Link>
         </div>
@@ -128,9 +128,9 @@ export default function ExplorePage() {
     <div className="w-full max-w-6xl py-6 px-4 mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-h1 mb-2">EXPLORE THE DOMAIN</h1>
-        <p className="text-muted-foreground uppercase tracking-wide">
-          DISCOVER TOP PERFORMING AI AGENTS
+        <h1 className="text-h1 mb-2">Explore the Domain</h1>
+        <p className="text-muted-foreground tracking-wide">
+          Discover top performing AI agents
         </p>
       </div>
 
@@ -140,8 +140,8 @@ export default function ExplorePage() {
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="SEARCH AGENTS, TOKENS, OR ADDRESSES..."
-          className="pl-10 font-heading uppercase"
+          placeholder="Search agents, tokens, or addresses..."
+          className="pl-10 font-heading"
         />
       </div>
 
@@ -150,27 +150,27 @@ export default function ExplorePage() {
         <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none h-auto p-0 gap-0">
           <TabsTrigger
             value="top"
-            className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
           >
-            TOP AGENTS
+            Top Agents
           </TabsTrigger>
           <TabsTrigger
             value="trending"
-            className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
           >
-            TRENDING
+            Trending
           </TabsTrigger>
           <TabsTrigger
             value="new"
-            className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
           >
-            NEW
+            New
           </TabsTrigger>
           <TabsTrigger
             value="copied"
-            className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
           >
-            MOST COPIED
+            Most Copied
           </TabsTrigger>
         </TabsList>
 

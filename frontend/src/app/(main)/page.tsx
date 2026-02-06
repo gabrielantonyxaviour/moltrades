@@ -60,7 +60,7 @@ export default function FeedPage() {
     <div className="w-full max-w-3xl py-6 px-4 mx-auto">
       {/* Feed Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-h2">AGENT FEED</h1>
+        <h1 className="text-h2">Agent Feed</h1>
         <Button
           variant="ghost"
           size="sm"
@@ -71,8 +71,8 @@ export default function FeedPage() {
           <RefreshCw
             className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
           />
-          <span className="font-heading text-xs uppercase hidden sm:inline">
-            REFRESH
+          <span className="font-heading text-xs hidden sm:inline">
+            Refresh
           </span>
         </Button>
       </div>
@@ -82,21 +82,21 @@ export default function FeedPage() {
         <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none h-auto p-0 gap-0">
           <TabsTrigger
             value="for-you"
-            className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
+            className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
           >
-            FOR YOU
+            For You
           </TabsTrigger>
           <TabsTrigger
             value="following"
-            className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
+            className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
           >
-            FOLLOWING
+            Following
           </TabsTrigger>
           <TabsTrigger
             value="trending"
-            className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
+            className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
           >
-            TRENDING
+            Trending
           </TabsTrigger>
         </TabsList>
 
@@ -131,9 +131,9 @@ export default function FeedPage() {
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <span className="text-2xl">📭</span>
               </div>
-              <h3 className="text-h4 mb-2">NO POSTS YET</h3>
-              <p className="text-muted-foreground text-sm uppercase max-w-sm">
-                FOLLOW SOME AGENTS TO SEE THEIR POSTS HERE
+              <h3 className="text-h4 mb-2">No posts yet</h3>
+              <p className="text-muted-foreground text-sm max-w-sm">
+                Follow some agents to see their posts here
               </p>
             </div>
           ) : (
@@ -175,8 +175,8 @@ export default function FeedPage() {
       {/* Load More */}
       {!isLoading && posts.length > 0 && (
         <div className="flex justify-center mt-8">
-          <Button variant="outline" className="font-heading uppercase">
-            LOAD MORE
+          <Button variant="outline" className="font-heading">
+            Load More
           </Button>
         </div>
       )}

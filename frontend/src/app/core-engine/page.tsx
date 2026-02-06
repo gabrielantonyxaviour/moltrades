@@ -266,10 +266,13 @@ export default function CoreEnginePage() {
         {/* Conversation tabs */}
         <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card/30 overflow-x-auto shrink-0">
           {conversations.map((conv) => (
-            <button
+            <div
               key={conv.id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleSelectConversation(conv.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors ${
+              onKeyDown={(e) => { if (e.key === "Enter") handleSelectConversation(conv.id); }}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors cursor-pointer ${
                 activeId === conv.id
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -285,7 +288,7 @@ export default function CoreEnginePage() {
               >
                 x
               </button>
-            </button>
+            </div>
           ))}
           <button
             onClick={handleNewChat}

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
+import { useWallets as useSolanaWallets } from "@privy-io/react-auth/solana"
 import { useSetActiveWallet } from "@privy-io/wagmi"
 import { Copy, Check, LogOut, Wallet, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -21,20 +22,47 @@ function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-function chainBadgeLabel(wallet: { type: string }) {
-  if (wallet.type === "solana") return "Solana"
-  return "EVM"
+interface WalletEntry {
+  address: string
+  label: string
+  chain: "EVM" | "Solana"
+  isEmbedded: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  raw: any
 }
 
 export function WalletDropdown() {
   const { logout } = usePrivy()
-  const { wallets } = useWallets()
+  const { wallets: evmWallets } = useWallets()
+  const { wallets: solanaWallets } = useSolanaWallets()
   const { setActiveWallet } = useSetActiveWallet()
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [fundDialogOpen, setFundDialogOpen] = useState(false)
 
-  const embeddedWallets = wallets.filter((w) => w.walletClientType === "privy")
-  const externalWallets = wallets.filter((w) => w.walletClientType !== "privy")
+  // Build unified wallet list
+  const allWallets: WalletEntry[] = [
+    ...evmWallets.map((w) => ({
+      address: w.address,
+      label: w.walletClientType === "privy" ? "EVM" : w.walletClientType,
+      chain: "EVM" as const,
+      isEmbedded: w.walletClientType === "privy",
+      raw: w,
+    })),
+    ...solanaWallets.map((w) => {
+      const name = w.standardWallet?.name ?? ""
+      const isEmbedded = name.toLowerCase().includes("privy")
+      return {
+        address: w.address,
+        label: isEmbedded ? "Solana" : name || "Solana",
+        chain: "Solana" as const,
+        isEmbedded,
+        raw: w,
+      }
+    }),
+  ]
+
+  const embeddedWallets = allWallets.filter((w) => w.isEmbedded)
+  const externalWallets = allWallets.filter((w) => !w.isEmbedded)
 
   const copyAddress = async (address: string) => {
     await navigator.clipboard.writeText(address)
@@ -44,8 +72,8 @@ export function WalletDropdown() {
 
   const displayAddress = embeddedWallets[0]
     ? truncateAddress(embeddedWallets[0].address)
-    : wallets[0]
-      ? truncateAddress(wallets[0].address)
+    : allWallets[0]
+      ? truncateAddress(allWallets[0].address)
       : "Wallet"
 
   const itemClass = "flex items-center justify-between focus:bg-transparent focus:text-inherit"
@@ -76,14 +104,14 @@ export function WalletDropdown() {
                   <DropdownMenuItem
                     key={wallet.address}
                     className={itemClass}
-                    onClick={() => setActiveWallet(wallet)}
+                    onClick={() => wallet.chain === "EVM" && setActiveWallet(wallet.raw)}
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm">
                         {truncateAddress(wallet.address)}
                       </span>
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        {chainBadgeLabel(wallet)}
+                        {wallet.chain}
                       </Badge>
                     </div>
                     <button
@@ -124,14 +152,14 @@ export function WalletDropdown() {
                   <DropdownMenuItem
                     key={wallet.address}
                     className={itemClass}
-                    onClick={() => setActiveWallet(wallet)}
+                    onClick={() => wallet.chain === "EVM" && setActiveWallet(wallet.raw)}
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm">
                         {truncateAddress(wallet.address)}
                       </span>
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        {wallet.walletClientType}
+                        {wallet.label}
                       </Badge>
                     </div>
                     <button

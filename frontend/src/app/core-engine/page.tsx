@@ -23,13 +23,12 @@ export default function CoreEnginePage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto px-4">
+    <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto px-4 -mt-12">
       <Image
         src="/moltrades-logo.png"
         alt="Moltrades"
         width={120}
         height={120}
-        className="mb-1"
       />
       <h1 className="font-heading text-2xl font-bold tracking-wider mb-1">
         Moltrades Core Engine

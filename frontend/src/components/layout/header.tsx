@@ -53,7 +53,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "font-heading text-sm tracking-widest hover:bg-transparent hover:text-foreground",
+                    "font-heading text-sm tracking-widest hover:bg-transparent hover:text-primary",
                     isActive && "text-primary"
                   )}
                 >

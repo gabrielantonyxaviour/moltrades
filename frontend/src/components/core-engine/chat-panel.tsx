@@ -27,10 +27,28 @@ export function ChatPanel({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Merge messages and log entries into a single chronological timeline
+  // Filter out assistant messages (text log entries already show the same content
+  // in the correct position interleaved with tool calls)
+  // Also filter out noisy "Complete" system entries
   const timeline = useMemo<TimelineItem[]>(() => {
+    const hasTextLogs = logEntries.some((e) => e.type === "text");
     const items: TimelineItem[] = [
-      ...messages.map((m) => ({ kind: "message" as const, data: m })),
-      ...logEntries.map((e) => ({ kind: "log" as const, data: e })),
+      ...messages
+        .filter((m) => {
+          // Keep user messages always
+          if (m.role === "user") return true;
+          // Skip assistant messages if we have text log entries (they duplicate content)
+          if (m.role === "assistant" && hasTextLogs) return false;
+          return true;
+        })
+        .map((m) => ({ kind: "message" as const, data: m })),
+      ...logEntries
+        .filter((e) => {
+          // Filter out "Complete" system messages (noise)
+          if (e.type === "system" && e.content === "Complete") return false;
+          return true;
+        })
+        .map((e) => ({ kind: "log" as const, data: e })),
     ];
     items.sort((a, b) => {
       const tA = a.kind === "message" ? a.data.timestamp : a.data.timestamp;
@@ -184,13 +202,14 @@ export function ChatPanel({
       );
     }
 
-    // Default tool rendering
+    // Clean up MCP tool names: "mcp__lifi-composer__get_protocols" → "get_protocols"
+    const displayName = (entry.toolName || "").replace(/^mcp__[^_]+__/, "");
     const isExpanded = expandedItems.has(entry.id);
     return (
       <div className={`mb-1.5 border-l-2 ${borderColor} pl-2`}>
         <div className="flex items-center gap-1.5">
           <span className={`w-1.5 h-1.5 rounded-full ${dotColor} ${entry.status === "pending" ? "animate-pulse" : ""}`} />
-          <span className={`text-xs ${statusColor}`}>{entry.toolName}</span>
+          <span className={`text-xs ${statusColor}`}>{displayName}</span>
           <button
             onClick={() => toggleExpand(entry.id)}
             className="text-[11px] text-muted-foreground hover:text-foreground"
@@ -232,41 +251,71 @@ export function ChatPanel({
         );
       }
 
-      case "text":
+      case "text": {
+        // Strip ```route ... ``` blocks from display and render a card instead
+        const routeMatch = entry.content.match(/```route\s*\n([\s\S]*?)\n\s*```/);
+        const textWithoutRoute = entry.content
+          .replace(/```route\s*\n[\s\S]*?\n\s*```/g, "")
+          .trim();
+
         return (
-          <div
-            key={entry.id}
-            className="mb-3 prose prose-invert prose-sm max-w-none text-sm leading-relaxed"
-          >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code: ({ className, children, ...props }: any) => {
-                  const isCodeBlock = className?.includes("language-");
-                  if (!isCodeBlock) {
+          <div key={entry.id}>
+            {textWithoutRoute && (
+              <div className="mb-3 prose prose-invert prose-sm max-w-none text-sm leading-relaxed">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code: ({ className, children, ...props }: any) => {
+                      const isCodeBlock = className?.includes("language-");
+                      if (!isCodeBlock) {
+                        return (
+                          <code className="bg-muted px-1.5 py-0.5 rounded text-xs" {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+                      return (
+                        <code
+                          className={`${className} block bg-muted/50 p-3 rounded-lg overflow-x-auto text-xs`}
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      );
+                    },
+                    pre: ({ children }) => <>{children}</>,
+                    p: ({ children }) => <p className="mb-2 leading-relaxed">{children}</p>,
+                  }}
+                >
+                  {textWithoutRoute}
+                </ReactMarkdown>
+              </div>
+            )}
+            {routeMatch && (
+              <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-xs font-medium text-primary">Route Detected</span>
+                </div>
+                {(() => {
+                  try {
+                    const route = JSON.parse(routeMatch[1].trim());
                     return (
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-xs" {...props}>
-                        {children}
-                      </code>
+                      <div className="text-xs text-muted-foreground space-y-0.5">
+                        <div><span className="text-foreground">{route.action}</span> {route.amount} {route.fromToken}{route.toToken ? ` → ${route.toToken}` : ""}</div>
+                        {route.fromChain && <div>{route.fromChain}{route.toChain ? ` → ${route.toChain}` : ""}</div>}
+                        {route.protocol && <div>via {route.protocol}</div>}
+                      </div>
                     );
+                  } catch {
+                    return <pre className="text-[11px] text-muted-foreground">{routeMatch[1].trim()}</pre>;
                   }
-                  return (
-                    <code
-                      className={`${className} block bg-muted/50 p-3 rounded-lg overflow-x-auto text-xs`}
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  );
-                },
-                pre: ({ children }) => <>{children}</>,
-                p: ({ children }) => <p className="mb-2 leading-relaxed">{children}</p>,
-              }}
-            >
-              {entry.content}
-            </ReactMarkdown>
+                })()}
+              </div>
+            )}
           </div>
         );
+      }
 
       case "tool_use":
         return <div key={entry.id}>{renderToolUse(entry)}</div>;

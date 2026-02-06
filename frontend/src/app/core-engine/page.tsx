@@ -16,10 +16,37 @@ import { generateFlowFromIntent } from "@/lib/lifi/flow-generator";
 
 import type { EngineState, LogEntry } from "@/lib/core-engine/types";
 
+/**
+ * Try to extract a valid trade intent from all user messages combined.
+ * This allows multi-turn conversations where details accumulate.
+ */
+function tryExtractIntent(userMessages: string[]) {
+  // Try each message individually (most recent first)
+  for (let i = userMessages.length - 1; i >= 0; i--) {
+    const intent = parseIntent(userMessages[i]);
+    if (isValidIntent(intent)) {
+      return intent;
+    }
+  }
+
+  // Try combining all user messages into one context string
+  if (userMessages.length > 1) {
+    const combined = userMessages.join(" ");
+    const intent = parseIntent(combined);
+    if (isValidIntent(intent)) {
+      return intent;
+    }
+  }
+
+  return null;
+}
+
 export default function CoreEnginePage() {
   const [engineState, setEngineState] = useState<EngineState>("idle");
   const [flowNodes, setFlowNodes] = useState<Node[]>([]);
   const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
+
+  const flowReady = flowNodes.length > 0;
 
   const {
     conversations,
@@ -76,19 +103,19 @@ export default function CoreEnginePage() {
         addMessage(activeId, { role: "assistant", content: text });
       }
 
-      // Try to parse intent from the latest user message to build flow
+      // Try to build a flow from all user messages in the conversation
       if (activeConversation) {
-        const userMessages = activeConversation.messages.filter(
-          (m) => m.role === "user"
-        );
-        const lastUserMsg = userMessages[userMessages.length - 1];
-        if (lastUserMsg) {
-          const intent = parseIntent(lastUserMsg.content);
-          if (isValidIntent(intent)) {
-            const { nodes, edges } = generateFlowFromIntent(intent);
-            setFlowNodes(nodes);
-            setFlowEdges(edges);
-          }
+        const userTexts = [
+          ...activeConversation.messages
+            .filter((m) => m.role === "user")
+            .map((m) => m.content),
+        ];
+
+        const intent = tryExtractIntent(userTexts);
+        if (intent) {
+          const { nodes, edges } = generateFlowFromIntent(intent);
+          setFlowNodes(nodes);
+          setFlowEdges(edges);
         }
       }
 
@@ -148,13 +175,10 @@ export default function CoreEnginePage() {
   );
 
   const handleNewChat = useCallback(() => {
-    const id = createConversation();
+    createConversation();
     setFlowNodes([]);
     setFlowEdges([]);
-    if (engineState === "active") {
-      // Stay in active state
-    }
-  }, [createConversation, engineState]);
+  }, [createConversation]);
 
   const handleSelectConversation = useCallback(
     (id: string) => {
@@ -164,6 +188,16 @@ export default function CoreEnginePage() {
       const conv = conversations.find((c) => c.id === id);
       if (conv && conv.messages.length > 0) {
         setEngineState("active");
+        // Re-extract flow from existing conversation
+        const userTexts = conv.messages
+          .filter((m) => m.role === "user")
+          .map((m) => m.content);
+        const intent = tryExtractIntent(userTexts);
+        if (intent) {
+          const { nodes, edges } = generateFlowFromIntent(intent);
+          setFlowNodes(nodes);
+          setFlowEdges(edges);
+        }
       }
     },
     [setActiveId, conversations]
@@ -227,68 +261,86 @@ export default function CoreEnginePage() {
   // ---- ACTIVE STATE ----
   return (
     <div className="flex-1 flex transition-all duration-500">
-      {/* Left 3/4: Flow graph + Chat */}
+      {/* Left 3/4: Chat or Flow */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top ~60%: Flow Canvas */}
-        <div className="flex-[3] min-h-0 border-b border-border">
-          <FlowCanvas
-            nodes={flowNodes}
-            edges={flowEdges}
-            onNodesChange={setFlowNodes}
-            onEdgesChange={setFlowEdges}
-            onNodeClick={() => {}}
-            executionState={executionState}
-          />
+        {/* Conversation tabs */}
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card/30 overflow-x-auto shrink-0">
+          {conversations.map((conv) => (
+            <button
+              key={conv.id}
+              onClick={() => handleSelectConversation(conv.id)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors ${
+                activeId === conv.id
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              }`}
+            >
+              <span className="truncate max-w-[120px]">{conv.title}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(conv.id);
+                }}
+                className="text-muted-foreground hover:text-red-400 ml-1"
+              >
+                x
+              </button>
+            </button>
+          ))}
+          <button
+            onClick={handleNewChat}
+            className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-accent/50 whitespace-nowrap"
+          >
+            + New
+          </button>
         </div>
 
-        {/* Bottom ~40%: Chat area */}
-        <div className="flex-[2] min-h-0 flex flex-col">
-          {/* Conversation tabs */}
-          <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card/30 overflow-x-auto">
-            {conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => handleSelectConversation(conv.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors ${
-                  activeId === conv.id
-                    ? "bg-primary/10 text-primary border border-primary/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                }`}
-              >
-                <span className="truncate max-w-[120px]">{conv.title}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteConversation(conv.id);
-                  }}
-                  className="text-muted-foreground hover:text-red-400 ml-1"
-                >
-                  x
-                </button>
-              </button>
-            ))}
-            <button
-              onClick={handleNewChat}
-              className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-accent/50 whitespace-nowrap"
-            >
-              + New
-            </button>
-          </div>
-
-          {/* Message list */}
-          <MessageList
-            messages={activeConversation?.messages || []}
-            liveState={liveState}
-          />
-
-          {/* Chat input */}
-          <div className="p-3 border-t border-border">
-            <ChatInput
-              onSend={handleSend}
-              isLoading={liveState.isStreaming}
-              placeholder="Describe your trade..."
+        {/* Main content area - transitions between chat and flow */}
+        <div className="flex-1 min-h-0 relative">
+          {/* Chat view: visible when no flow chart yet */}
+          <div
+            className={`absolute inset-0 flex flex-col transition-all duration-500 ${
+              flowReady
+                ? "opacity-0 pointer-events-none scale-95"
+                : "opacity-100 scale-100"
+            }`}
+          >
+            <MessageList
+              messages={activeConversation?.messages || []}
+              liveState={liveState}
             />
           </div>
+
+          {/* Flow view: visible once trade intent is resolved */}
+          <div
+            className={`absolute inset-0 transition-all duration-500 ${
+              flowReady
+                ? "opacity-100 scale-100"
+                : "opacity-0 pointer-events-none scale-105"
+            }`}
+          >
+            <FlowCanvas
+              nodes={flowNodes}
+              edges={flowEdges}
+              onNodesChange={setFlowNodes}
+              onEdgesChange={setFlowEdges}
+              onNodeClick={() => {}}
+              executionState={executionState}
+            />
+          </div>
+        </div>
+
+        {/* Chat input - always visible at bottom */}
+        <div className="p-3 border-t border-border shrink-0">
+          <ChatInput
+            onSend={handleSend}
+            isLoading={liveState.isStreaming}
+            placeholder={
+              flowReady
+                ? "Refine your trade or start a new one..."
+                : "Describe your trade..."
+            }
+          />
         </div>
       </div>
 

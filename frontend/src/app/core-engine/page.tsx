@@ -51,7 +51,7 @@ export default function CoreEnginePage() {
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             size="icon-sm"
-            className="rounded-full"
+            className="rounded-lg"
             type="button"
           >
             {isLoading ? (

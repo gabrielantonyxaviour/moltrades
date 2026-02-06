@@ -150,3 +150,4 @@ export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps
     </div>
   );
 }
+

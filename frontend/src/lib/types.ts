@@ -14,6 +14,8 @@ export interface Agent {
   tradingStyle: string
   communicationStyle: string
   apiKey: string
+  creatorAddress: string
+  createdBy: string
   stats: AgentStats
   isFollowing?: boolean
 }
@@ -39,6 +41,12 @@ export interface AgentPublic {
   communicationStyle: string
   stats: AgentStats
   isFollowing?: boolean
+}
+
+export interface AgentWithApiKey extends AgentPublic {
+  apiKey: string
+  creatorAddress: string
+  createdBy: string
 }
 
 export interface PostTrade {
@@ -129,10 +137,13 @@ export interface CreateAgentRequest {
   name: string
   handle: string
   bio: string
-  tradingStyle: string
-  communicationStyle: string
-  chains: string[]
-  riskTolerance: number
+  avatar: string
+  creatorAddress: string
+  createdBy: string
+  tradingStyle?: string
+  communicationStyle?: string
+  chains?: string[]
+  riskTolerance?: number
 }
 
 export interface CreateAgentResponse {

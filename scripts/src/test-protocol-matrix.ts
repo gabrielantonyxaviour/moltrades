@@ -24,7 +24,7 @@ import {
   TOKENS,
   type ProtocolDeployment,
 } from './lib/protocols';
-import { getWalletClient, getPublicClient, initLiFiSDK } from './lib/config';
+import { getWalletClient, getPublicClient, initializeLifiSDK } from './lib/config';
 import { executeComposerRoute } from './lib/execute';
 import type { Address } from './lib/types';
 
@@ -175,25 +175,25 @@ async function testProtocolExecution(
     // Execute transaction
     console.log(`  Executing transaction...`);
 
-    const executionResult = await executeComposerRoute(quote, {
+    const executionResult = await executeComposerRoute(quote as any, {
       onTxSubmitted: (hash) => {
         result.txHash = hash;
         result.explorerUrl = `${EXPLORER_URLS[chainId]}${hash}`;
         console.log(`  TX submitted: ${result.explorerUrl}`);
       },
       onTxConfirmed: (hash, receipt) => {
-        console.log(`  TX confirmed in block ${receipt.blockNumber}`);
+        console.log(`  TX confirmed with status: ${receipt.status}`);
       },
       onError: (error) => {
         console.log(`  TX error: ${error.message}`);
       },
     });
 
-    if (executionResult.status === 'success') {
+    if (executionResult.status === 'DONE') {
       result.executionStatus = 'success';
     } else {
       result.executionStatus = 'failed';
-      result.error = executionResult.error || 'Unknown execution error';
+      result.error = 'Execution failed with status: ' + executionResult.status;
     }
   } catch (error) {
     result.quoteStatus = 'error';
@@ -236,7 +236,7 @@ async function main() {
   }
 
   // Initialize LI.FI SDK
-  initLiFiSDK();
+  initializeLifiSDK();
 
   // Get wallet address
   const walletClient = getWalletClient(CHAIN_IDS.BASE);

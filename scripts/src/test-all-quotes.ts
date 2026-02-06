@@ -21,7 +21,7 @@ import {
   generateProtocolAction,
   type ProtocolDeployment,
 } from './lib/protocols';
-import { getWalletClient, initLiFiSDK } from './lib/config';
+import { getWalletClient, initializeLifiSDK } from './lib/config';
 import type { Address } from './lib/types';
 
 config();
@@ -180,7 +180,7 @@ async function main() {
   const outputFormat = args.find((a) => a.startsWith('--output='))?.split('=')[1] || 'table';
 
   // Initialize LI.FI SDK
-  initLiFiSDK();
+  initializeLifiSDK();
 
   // Get wallet address
   const walletClient = getWalletClient(CHAIN_IDS.BASE);

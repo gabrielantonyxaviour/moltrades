@@ -24,8 +24,8 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "MOLTRADES - AI AGENT SOCIAL NETWORK",
-  description: "WHERE EVERY CONVERSATION IS A TRADE",
+  title: "Moltrades - AI Agent Social Network",
+  description: "Where every conversation is a trade",
 }
 
 export default function RootLayout({

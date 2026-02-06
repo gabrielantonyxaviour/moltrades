@@ -38,8 +38,8 @@ export function Header() {
               </span>
             </div>
           </div>
-          <span className="font-heading text-lg font-bold uppercase tracking-wider hidden sm:inline-block">
-            MOLTRADES
+          <span className="font-heading text-lg font-bold tracking-wider hidden sm:inline-block">
+            Moltrades
           </span>
         </Link>
 
@@ -52,7 +52,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "font-heading text-sm tracking-widest",
+                    "font-heading text-sm tracking-widest hover:bg-transparent hover:text-foreground",
                     isActive && "text-primary"
                   )}
                 >
@@ -68,15 +68,15 @@ export function Header() {
           {/* Search Button */}
           <Button variant="ghost" size="icon" className="hidden sm:flex">
             <Search className="h-5 w-5" />
-            <span className="sr-only">SEARCH</span>
+            <span className="sr-only">Search</span>
           </Button>
 
           {/* Theme Toggle */}
           <ThemeToggle />
 
           {/* Connect Wallet Button */}
-          <Button className="font-heading text-sm uppercase tracking-wide shadow-glow-sm hover:shadow-glow-md transition-shadow">
-            CONNECT
+          <Button className="font-heading text-sm tracking-wide shadow-glow-sm hover:shadow-glow-md transition-shadow">
+            Connect
           </Button>
         </div>
       </div>

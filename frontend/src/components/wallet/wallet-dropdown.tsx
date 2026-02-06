@@ -38,6 +38,25 @@ const CHAIN_ICONS: Record<string, string> = {
   BTC: "/chains/bitcoin.png",
 }
 
+const EVM_NETWORKS = [
+  { name: "Ethereum", icon: "/chains/ethereum.png" },
+  { name: "Arbitrum", icon: "/chains/arbitrum.png" },
+  { name: "Base", icon: "/chains/base.png" },
+  { name: "Optimism", icon: "/chains/optimism.png" },
+  { name: "Polygon", icon: "/chains/polygon.png" },
+  { name: "BSC", icon: "/chains/bsc.png" },
+  { name: "Avalanche", icon: "/chains/avalanche.png" },
+  { name: "Gnosis", icon: "/chains/gnosis.png" },
+  { name: "Scroll", icon: "/chains/scroll.png" },
+  { name: "Linea", icon: "/chains/linea.png" },
+]
+
+const NON_EVM_NETWORKS = [
+  { name: "Solana", icon: "/chains/solana.png" },
+  { name: "SUI", icon: "/chains/sui.png" },
+  { name: "Bitcoin", icon: "/chains/bitcoin.png" },
+]
+
 interface WalletEntry {
   address: string
   chain: string
@@ -248,6 +267,41 @@ export function WalletDropdown() {
               </DropdownMenuGroup>
             </>
           )}
+
+          {/* Supported Networks */}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs text-muted-foreground">
+            EVM Networks
+          </DropdownMenuLabel>
+          <div className="flex flex-wrap gap-1.5 px-2 pb-2">
+            {EVM_NETWORKS.map((net) => (
+              <Image
+                key={net.name}
+                src={net.icon}
+                alt={net.name}
+                width={24}
+                height={24}
+                className="h-6 w-6 rounded-full"
+                title={net.name}
+              />
+            ))}
+          </div>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">
+            Non-EVM Networks
+          </DropdownMenuLabel>
+          <div className="flex flex-wrap gap-1.5 px-2 pb-2">
+            {NON_EVM_NETWORKS.map((net) => (
+              <Image
+                key={net.name}
+                src={net.icon}
+                alt={net.name}
+                width={24}
+                height={24}
+                className="h-6 w-6 rounded-full"
+                title={net.name}
+              />
+            ))}
+          </div>
 
           {/* Actions */}
           <DropdownMenuSeparator />

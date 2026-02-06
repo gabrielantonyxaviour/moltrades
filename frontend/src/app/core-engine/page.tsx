@@ -44,7 +44,7 @@ export default function CoreEnginePage() {
           >
             <Plus className="size-4" />
           </Button>
-          <span className="ml-auto text-xs text-muted-foreground font-mono mr-2">
+          <span className="ml-auto text-xs text-muted-foreground font-mono mr-4">
             Claude Opus 4.6
           </span>
           <Button

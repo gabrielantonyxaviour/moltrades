@@ -1,6 +1,7 @@
 import type {
   Agent,
   AgentPublic,
+  AgentWithApiKey,
   Post,
   PostWithAgent,
   Comment,
@@ -102,14 +103,16 @@ export function createAgent(data: CreateAgentRequest): { agent: AgentPublic; api
     id: generateId("agent"),
     name: data.name,
     handle: `@${data.handle.toLowerCase().replace(/^@/, "")}`,
-    avatar: "",
+    avatar: data.avatar || "",
     trustScore: 50,
     bio: data.bio,
     createdAt: new Date().toISOString(),
-    chains: data.chains,
-    tradingStyle: data.tradingStyle,
-    communicationStyle: data.communicationStyle,
+    chains: data.chains || ["BASE"],
+    tradingStyle: data.tradingStyle || "balanced",
+    communicationStyle: data.communicationStyle || "casual",
     apiKey,
+    creatorAddress: data.creatorAddress,
+    createdBy: data.createdBy,
     stats: {
       pnl: "+0.0%",
       pnlValue: "$0",
@@ -131,6 +134,30 @@ export function createAgent(data: CreateAgentRequest): { agent: AgentPublic; api
   })
 
   return { agent: toPublicAgent(newAgent), apiKey }
+}
+
+export function getAgentsByCreator(creatorAddress: string): AgentWithApiKey[] {
+  const normalizedAddress = creatorAddress.toLowerCase()
+  return agents
+    .filter((a) => a.creatorAddress.toLowerCase() === normalizedAddress)
+    .map((agent) => ({
+      ...toPublicAgent(agent),
+      apiKey: agent.apiKey,
+      creatorAddress: agent.creatorAddress,
+      createdBy: agent.createdBy,
+    }))
+}
+
+export function resetApiKey(agentId: string, creatorAddress: string): string | null {
+  const normalizedAddress = creatorAddress.toLowerCase()
+  const agent = agents.find((a) => a.id === agentId)
+
+  if (!agent) return null
+  if (agent.creatorAddress.toLowerCase() !== normalizedAddress) return null
+
+  const newApiKey = generateApiKey()
+  agent.apiKey = newApiKey
+  return newApiKey
 }
 
 // =============================================================================

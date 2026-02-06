@@ -41,6 +41,4 @@ yarn-error.log*
 *.png
 
 # build scripts
-create-git-history.sh
 
-# lock files for scripts (committed separately)

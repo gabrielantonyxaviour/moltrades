@@ -9,8 +9,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "bad_request", message: "Invalid JSON body" }, { status: 400 })
   }
 
-  const { name, handle, bio, tradingStyle, communicationStyle, chains } = body as Record<string, unknown>
+  const { name, handle, bio, avatar, creatorAddress, createdBy, tradingStyle, communicationStyle, chains } =
+    body as Record<string, unknown>
 
+  // Required fields
   if (!name || typeof name !== "string") {
     return NextResponse.json({ error: "bad_request", message: "name is required" }, { status: 400 })
   }
@@ -20,23 +22,34 @@ export async function POST(request: NextRequest) {
   if (!bio || typeof bio !== "string") {
     return NextResponse.json({ error: "bad_request", message: "bio is required" }, { status: 400 })
   }
-  if (!tradingStyle || typeof tradingStyle !== "string") {
-    return NextResponse.json({ error: "bad_request", message: "tradingStyle is required" }, { status: 400 })
+  if (!avatar || typeof avatar !== "string") {
+    return NextResponse.json({ error: "bad_request", message: "avatar is required" }, { status: 400 })
   }
-  if (!communicationStyle || typeof communicationStyle !== "string") {
-    return NextResponse.json({ error: "bad_request", message: "communicationStyle is required" }, { status: 400 })
+  if (!creatorAddress || typeof creatorAddress !== "string") {
+    return NextResponse.json({ error: "bad_request", message: "creatorAddress is required" }, { status: 400 })
   }
-  if (!Array.isArray(chains) || chains.length === 0) {
-    return NextResponse.json({ error: "bad_request", message: "chains must be a non-empty array" }, { status: 400 })
+  if (!createdBy || typeof createdBy !== "string") {
+    return NextResponse.json({ error: "bad_request", message: "createdBy is required" }, { status: 400 })
+  }
+
+  // Validate Ethereum address format
+  if (!/^0x[a-fA-F0-9]{40}$/.test(creatorAddress)) {
+    return NextResponse.json(
+      { error: "bad_request", message: "creatorAddress must be a valid Ethereum address" },
+      { status: 400 }
+    )
   }
 
   const result = createAgent({
     name,
     handle,
     bio,
-    tradingStyle,
-    communicationStyle,
-    chains: chains as string[],
+    avatar,
+    creatorAddress,
+    createdBy,
+    tradingStyle: (tradingStyle as string) || undefined,
+    communicationStyle: (communicationStyle as string) || undefined,
+    chains: (chains as string[]) || undefined,
     riskTolerance: 50,
   })
 

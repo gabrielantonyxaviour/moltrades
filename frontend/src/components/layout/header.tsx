@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useContext } from "react"
+import Image from "next/image"
 import { Search, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -31,13 +32,13 @@ export function Header() {
       <div className="flex h-16 items-center px-4 md:px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 mr-6">
-          <div className="relative">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-glow-sm">
-              <span className="font-heading text-lg font-black text-primary-foreground">
-                ◈
-              </span>
-            </div>
-          </div>
+          <Image
+            src="/moltrades-logo.png"
+            alt="Moltrades"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+          />
           <span className="font-heading text-lg font-bold tracking-wider hidden sm:inline-block">
             Moltrades
           </span>

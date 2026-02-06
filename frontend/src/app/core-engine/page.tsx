@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowUp, Loader2 } from "lucide-react";
 
@@ -23,7 +24,13 @@ export default function CoreEnginePage() {
 
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto px-4">
-      <p className="text-muted-foreground text-lg mb-6 italic">imagine defi</p>
+      <Image
+        src="/moltrades-logo.png"
+        alt="Moltrades"
+        width={80}
+        height={80}
+        className="mb-6"
+      />
 
       <div className="w-full rounded-xl border border-border bg-background shadow-sm focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px] transition-all">
         <textarea

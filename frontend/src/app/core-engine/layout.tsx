@@ -8,7 +8,7 @@ export default function CoreEngineLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 flex items-center justify-center overflow-hidden">{children}</main>
+      <main className="flex-1 flex overflow-hidden">{children}</main>
     </div>
   )
 }

@@ -141,16 +141,16 @@ export default function AgentProfilePage() {
                 <h1 className="text-h1">{agent.name}</h1>
                 <TrustBadge score={agent.trustScore} size="lg" />
               </div>
-              <p className="text-muted-foreground uppercase text-sm mb-2">
+              <p className="text-muted-foreground text-sm mb-2">
                 {agent.handle}
               </p>
-              <p className="text-sm uppercase tracking-wide max-w-xl">
+              <p className="text-sm tracking-wide max-w-xl">
                 {agent.bio}
               </p>
-              <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground uppercase">
-                <span>CREATED: {new Date(agent.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase()}</span>
+              <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                <span>Created: {new Date(agent.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                 <span>•</span>
-                <span>CHAINS: {agent.chains.join(", ")}</span>
+                <span>Chains: {agent.chains.join(", ")}</span>
               </div>
             </div>
 
@@ -158,13 +158,13 @@ export default function AgentProfilePage() {
               <Button
                 variant={isFollowing ? "secondary" : "default"}
                 onClick={() => setIsFollowing(!isFollowing)}
-                className="font-heading uppercase"
+                className="font-heading"
               >
-                {isFollowing ? "FOLLOWING" : "FOLLOW"}
+                {isFollowing ? "Following" : "Follow"}
               </Button>
-              <Button variant="outline" className="font-heading uppercase gap-2">
+              <Button variant="outline" className="font-heading gap-2">
                 <Copy className="h-4 w-4" />
-                COPY TRADES
+                Copy Trades
               </Button>
               <Button variant="ghost" size="icon">
                 <MessageCircle className="h-5 w-5" />
@@ -177,26 +177,26 @@ export default function AgentProfilePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="bg-card/50">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase mb-1">ALL-TIME PNL</p>
+              <p className="text-xs text-muted-foreground mb-1">All-time PnL</p>
               <p className="text-2xl font-mono font-bold text-cyan-accent">{agent.stats.pnl}</p>
               <p className="text-xs text-muted-foreground font-mono">{agent.stats.pnlValue}</p>
             </CardContent>
           </Card>
           <Card className="bg-card/50">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase mb-1">FOLLOWERS</p>
+              <p className="text-xs text-muted-foreground mb-1">Followers</p>
               <p className="text-2xl font-mono font-bold">{agent.stats.followers.toLocaleString()}</p>
             </CardContent>
           </Card>
           <Card className="bg-card/50">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase mb-1">TRADES</p>
+              <p className="text-xs text-muted-foreground mb-1">Trades</p>
               <p className="text-2xl font-mono font-bold">{agent.stats.trades.toLocaleString()}</p>
             </CardContent>
           </Card>
           <Card className="bg-card/50">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground uppercase mb-1">WIN RATE</p>
+              <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
               <p className="text-2xl font-mono font-bold">{agent.stats.winRate}%</p>
             </CardContent>
           </Card>
@@ -205,24 +205,24 @@ export default function AgentProfilePage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none h-auto p-0 gap-0 mb-6">
-            <TabsTrigger value="posts" className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
-              POSTS
+            <TabsTrigger value="posts" className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
+              Posts
             </TabsTrigger>
-            <TabsTrigger value="trades" className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
-              TRADES
+            <TabsTrigger value="trades" className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
+              Trades
             </TabsTrigger>
-            <TabsTrigger value="portfolio" className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
-              PORTFOLIO
+            <TabsTrigger value="portfolio" className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
+              Portfolio
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="font-heading text-sm uppercase tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
-              ANALYTICS
+            <TabsTrigger value="analytics" className="font-heading text-sm tracking-widest rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3">
+              Analytics
             </TabsTrigger>
           </TabsList>
 
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-4">
             {posts.length === 0 ? (
-              <p className="text-center text-muted-foreground uppercase py-8">NO POSTS YET</p>
+              <p className="text-center text-muted-foreground py-8">No posts yet</p>
             ) : (
               posts.map((post) => (
                 <PostCard
@@ -243,12 +243,12 @@ export default function AgentProfilePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="font-heading text-xs uppercase">TYPE</TableHead>
-                    <TableHead className="font-heading text-xs uppercase">PAIR</TableHead>
-                    <TableHead className="font-heading text-xs uppercase">AMOUNT</TableHead>
-                    <TableHead className="font-heading text-xs uppercase">PNL</TableHead>
-                    <TableHead className="font-heading text-xs uppercase">CHAIN</TableHead>
-                    <TableHead className="font-heading text-xs uppercase">TIME</TableHead>
+                    <TableHead className="font-heading text-xs">Type</TableHead>
+                    <TableHead className="font-heading text-xs">Pair</TableHead>
+                    <TableHead className="font-heading text-xs">Amount</TableHead>
+                    <TableHead className="font-heading text-xs">PnL</TableHead>
+                    <TableHead className="font-heading text-xs">Chain</TableHead>
+                    <TableHead className="font-heading text-xs">Time</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -257,7 +257,7 @@ export default function AgentProfilePage() {
                     return (
                       <TableRow key={trade.id} className="hover:bg-muted/50">
                         <TableCell>
-                          <Badge variant="outline" className={cn("font-heading text-xs uppercase", color)}>
+                          <Badge variant="outline" className={cn("font-heading text-xs", color)}>
                             <Icon className="h-3 w-3 mr-1" />
                             {trade.type}
                           </Badge>
@@ -281,7 +281,7 @@ export default function AgentProfilePage() {
                             {trade.chain}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs uppercase">
+                        <TableCell className="text-muted-foreground text-xs">
                           {formatRelativeTime(trade.time)}
                         </TableCell>
                       </TableRow>
@@ -299,14 +299,14 @@ export default function AgentProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card className="bg-card/50">
                     <CardContent className="p-6">
-                      <p className="text-xs text-muted-foreground uppercase mb-2">TOTAL VALUE</p>
+                      <p className="text-xs text-muted-foreground mb-2">Total Value</p>
                       <p className="text-3xl font-mono font-bold">{portfolio.totalValue}</p>
                       <p className="text-sm text-muted-foreground font-mono">~ {portfolio.totalValueEth}</p>
                     </CardContent>
                   </Card>
                   <Card className="bg-card/50">
                     <CardContent className="p-6">
-                      <p className="text-xs text-muted-foreground uppercase mb-2">24H CHANGE</p>
+                      <p className="text-xs text-muted-foreground mb-2">24h Change</p>
                       <p className={cn(
                         "text-3xl font-mono font-bold",
                         portfolio.change24h.startsWith("+") ? "text-cyan-accent" : portfolio.change24h.startsWith("-") ? "text-crimson-warning" : ""
@@ -325,14 +325,14 @@ export default function AgentProfilePage() {
 
                 <Card className="bg-card/50">
                   <CardContent className="p-6">
-                    <h3 className="text-h4 mb-4">HOLDINGS</h3>
+                    <h3 className="text-h4 mb-4">Holdings</h3>
                     <div className="space-y-4">
                       {portfolio.holdings.map((item) => (
                         <div key={item.token} className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="text-lg">{item.symbol}</span>
-                              <span className="font-heading text-sm uppercase">{item.token}</span>
+                              <span className="font-heading text-sm">{item.token}</span>
                             </div>
                             <div className="text-right">
                               <p className="font-mono text-sm">{item.value}</p>
@@ -353,7 +353,7 @@ export default function AgentProfilePage() {
                 </Card>
               </>
             ) : (
-              <p className="text-center text-muted-foreground uppercase py-8">NO PORTFOLIO DATA</p>
+              <p className="text-center text-muted-foreground py-8">No portfolio data</p>
             )}
           </TabsContent>
 
@@ -362,10 +362,10 @@ export default function AgentProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="bg-card/50">
                 <CardContent className="p-6">
-                  <h3 className="text-h4 mb-4">PERFORMANCE METRICS</h3>
+                  <h3 className="text-h4 mb-4">Performance Metrics</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground uppercase">WIN RATE</span>
+                      <span className="text-sm text-muted-foreground">Win Rate</span>
                       <span className="font-mono text-lg font-bold">{agent.stats.winRate}%</span>
                     </div>
                     <Progress value={agent.stats.winRate} className="h-2" />
@@ -374,20 +374,20 @@ export default function AgentProfilePage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase mb-1">TOTAL TRADES</p>
+                        <p className="text-xs text-muted-foreground mb-1">Total Trades</p>
                         <p className="font-mono text-lg">{agent.stats.trades}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase mb-1">ALL-TIME PNL</p>
+                        <p className="text-xs text-muted-foreground mb-1">All-time PnL</p>
                         <p className="font-mono text-lg text-cyan-accent">{agent.stats.pnl}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase mb-1">FOLLOWERS</p>
+                        <p className="text-xs text-muted-foreground mb-1">Followers</p>
                         <p className="font-mono text-lg">{agent.stats.followers.toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase mb-1">STYLE</p>
-                        <p className="font-mono text-lg uppercase">{agent.tradingStyle}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Style</p>
+                        <p className="font-mono text-lg">{agent.tradingStyle}</p>
                       </div>
                     </div>
                   </div>
@@ -396,7 +396,7 @@ export default function AgentProfilePage() {
 
               <Card className="bg-card/50">
                 <CardContent className="p-6">
-                  <h3 className="text-h4 mb-4">TRADE DISTRIBUTION</h3>
+                  <h3 className="text-h4 mb-4">Trade Distribution</h3>
                   <div className="flex items-center justify-center h-48">
                     <div className="text-center">
                       <div className="relative h-32 w-32 mx-auto mb-4">
@@ -414,11 +414,11 @@ export default function AgentProfilePage() {
                       <div className="flex justify-center gap-6 text-sm">
                         <div className="flex items-center gap-2">
                           <div className="h-3 w-3 rounded-full bg-cyan-accent" />
-                          <span className="uppercase">WINS</span>
+                          <span>Wins</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="h-3 w-3 rounded-full bg-muted" />
-                          <span className="uppercase">LOSSES</span>
+                          <span>Losses</span>
                         </div>
                       </div>
                     </div>

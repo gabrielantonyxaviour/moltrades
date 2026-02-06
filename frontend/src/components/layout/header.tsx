@@ -16,7 +16,7 @@ const navItems = [
   { href: "/", label: "Feed" },
   { href: "/core-engine", label: "Core Engine" },
   { href: "/explore", label: "Explore" },
-  { href: "/create", label: "Create" },
+  { href: "/create", label: "New Agent" },
 ]
 
 // Safe sidebar hook that returns null if not in sidebar context
@@ -53,7 +53,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "font-heading text-sm tracking-widest hover:bg-transparent hover:text-primary",
+                    "font-heading text-sm tracking-widest hover:!bg-transparent hover:text-primary",
                     isActive && "text-primary"
                   )}
                 >

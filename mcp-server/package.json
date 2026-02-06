@@ -1,0 +1,22 @@
+{
+  "name": "moltrades-mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "dev": "npx tsx --watch src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@lifi/sdk": "^3.15.4",
+    "viem": "^2.45.1",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3",
+    "@types/node": "^22.0.0"
+  }
+}

@@ -6,7 +6,9 @@
     "test:quotes": "npx tsx src/test-quotes.ts",
     "test:execute": "npx tsx src/test-execute.ts",
     "test:protocols": "npx tsx src/test-all-protocols.ts",
-    "test:cross-chain": "npx tsx src/test-cross-chain.ts"
+    "test:cross-chain": "npx tsx src/test-cross-chain.ts",
+    "test:all-quotes": "npx tsx src/test-all-quotes.ts",
+    "test:matrix": "npx tsx src/test-protocol-matrix.ts"
   },
   "dependencies": {
     "@lifi/sdk": "^3.15.4",

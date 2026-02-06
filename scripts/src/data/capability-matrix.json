@@ -1,0 +1,161 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2024-02-06",
+  "description": "LI.FI Composer Protocol x Chain Capability Matrix",
+  "chains": {
+    "1": { "name": "Ethereum", "symbol": "ETH", "tier": 1 },
+    "10": { "name": "Optimism", "symbol": "OP", "tier": 1 },
+    "56": { "name": "BNB Chain", "symbol": "BSC", "tier": 2 },
+    "100": { "name": "Gnosis", "symbol": "GNO", "tier": 3 },
+    "137": { "name": "Polygon", "symbol": "POLY", "tier": 1 },
+    "8453": { "name": "Base", "symbol": "BASE", "tier": 1 },
+    "42161": { "name": "Arbitrum", "symbol": "ARB", "tier": 1 },
+    "43114": { "name": "Avalanche", "symbol": "AVAX", "tier": 2 },
+    "59144": { "name": "Linea", "symbol": "LINEA", "tier": 2 },
+    "534352": { "name": "Scroll", "symbol": "SCROLL", "tier": 2 }
+  },
+  "protocols": {
+    "aave-v3": {
+      "name": "Aave V3",
+      "type": "lending",
+      "depositOnly": false,
+      "assets": ["WETH", "USDC", "USDT", "DAI"],
+      "chains": [1, 10, 56, 100, 137, 8453, 42161, 43114, 534352]
+    },
+    "compound-v3": {
+      "name": "Compound V3",
+      "type": "lending",
+      "depositOnly": false,
+      "assets": ["USDC", "WETH"],
+      "chains": [1, 10, 137, 8453, 42161, 534352]
+    },
+    "morpho-v2": {
+      "name": "Morpho V2",
+      "type": "vault",
+      "depositOnly": false,
+      "assets": ["USDC", "WETH"],
+      "chains": [1, 8453]
+    },
+    "lido-wsteth": {
+      "name": "Lido wstETH",
+      "type": "liquid-staking",
+      "depositOnly": false,
+      "assets": ["stETH"],
+      "chains": [1, 10, 100, 137, 8453, 42161, 59144, 534352]
+    },
+    "etherfi-weeth": {
+      "name": "EtherFi weETH",
+      "type": "liquid-staking",
+      "depositOnly": false,
+      "assets": ["eETH"],
+      "chains": [1, 10, 8453, 42161]
+    },
+    "ethena": {
+      "name": "Ethena sUSDe",
+      "type": "staking",
+      "depositOnly": true,
+      "assets": ["USDe"],
+      "chains": [1, 8453, 42161]
+    },
+    "seamless": {
+      "name": "Seamless",
+      "type": "lending",
+      "depositOnly": false,
+      "assets": ["WETH", "USDC"],
+      "chains": [8453]
+    },
+    "moonwell": {
+      "name": "Moonwell",
+      "type": "lending",
+      "depositOnly": false,
+      "assets": ["WETH", "USDC"],
+      "chains": [10, 8453]
+    }
+  },
+  "matrix": {
+    "aave-v3-weth": {
+      "1": "available",
+      "10": "available",
+      "56": "not-tested",
+      "100": "available",
+      "137": "available",
+      "8453": "verified",
+      "42161": "verified",
+      "43114": "available",
+      "534352": "available"
+    },
+    "aave-v3-usdc": {
+      "1": "available",
+      "10": "available",
+      "56": "available",
+      "100": "available",
+      "137": "available",
+      "8453": "verified",
+      "42161": "verified",
+      "43114": "available",
+      "534352": "available"
+    },
+    "compound-v3-usdc": {
+      "1": "available",
+      "10": "available",
+      "137": "available",
+      "8453": "verified",
+      "42161": "verified",
+      "534352": "available"
+    },
+    "compound-v3-weth": {
+      "1": "available",
+      "10": "available",
+      "8453": "verified",
+      "42161": "available"
+    },
+    "morpho-usdc": {
+      "1": "available",
+      "8453": "verified"
+    },
+    "morpho-weth": {
+      "1": "available",
+      "8453": "available"
+    },
+    "lido-wsteth": {
+      "1": "available"
+    },
+    "etherfi-weeth": {
+      "1": "available"
+    },
+    "ethena-susde": {
+      "1": "available",
+      "8453": "available",
+      "42161": "available"
+    },
+    "seamless-weth": {
+      "8453": "available"
+    },
+    "seamless-usdc": {
+      "8453": "available"
+    },
+    "moonwell-weth": {
+      "10": "available",
+      "8453": "verified"
+    },
+    "moonwell-usdc": {
+      "10": "available",
+      "8453": "verified"
+    },
+    "weth-wrap": {
+      "1": "verified",
+      "10": "available",
+      "8453": "verified",
+      "42161": "verified",
+      "59144": "available",
+      "534352": "available"
+    }
+  },
+  "statusLegend": {
+    "verified": "Tested and working on mainnet",
+    "available": "Quote available, execution not tested",
+    "issue": "Quote works but execution has known issues",
+    "not-available": "Protocol not deployed on this chain",
+    "not-tested": "Protocol deployed but not yet tested"
+  }
+}

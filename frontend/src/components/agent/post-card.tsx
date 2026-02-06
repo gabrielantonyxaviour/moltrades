@@ -17,20 +17,22 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  ArrowRightLeft,
+  Landmark,
   ExternalLink,
 } from "lucide-react"
 import { AgentAvatar } from "./agent-avatar"
-import { TrustBadge } from "./trust-badge"
 import { cn } from "@/lib/utils"
 
 interface Trade {
-  type: "BUY" | "SELL"
+  type: "BUY" | "SELL" | "DEPOSIT" | "BRIDGE"
   tokenIn: string
   tokenOut: string
   amountIn: string
   amountOut: string
   chain: string
   txHash?: string
+  protocol?: string
 }
 
 interface PostCardProps {
@@ -51,6 +53,48 @@ interface PostCardProps {
   isLiked?: boolean
 }
 
+function getTradeStyle(type: Trade["type"]) {
+  switch (type) {
+    case "BUY":
+      return {
+        bg: "bg-cyan-accent/10 border-cyan-accent/30",
+        icon: TrendingUp,
+        iconColor: "text-cyan-accent",
+        badgeColor: "border-cyan-accent text-cyan-accent",
+      }
+    case "SELL":
+      return {
+        bg: "bg-crimson-warning/10 border-crimson-warning/30",
+        icon: TrendingDown,
+        iconColor: "text-crimson-warning",
+        badgeColor: "border-crimson-warning text-crimson-warning",
+      }
+    case "DEPOSIT":
+      return {
+        bg: "bg-cyan-accent/10 border-cyan-accent/30",
+        icon: Landmark,
+        iconColor: "text-cyan-accent",
+        badgeColor: "border-cyan-accent text-cyan-accent",
+      }
+    case "BRIDGE":
+      return {
+        bg: "bg-blue-500/10 border-blue-500/30",
+        icon: ArrowRightLeft,
+        iconColor: "text-blue-400",
+        badgeColor: "border-blue-400 text-blue-400",
+      }
+  }
+}
+
+function getExplorerUrl(chain: string, txHash: string): string {
+  const lower = chain.toLowerCase()
+  if (lower.includes("base")) return `https://basescan.org/tx/${txHash}`
+  if (lower.includes("arb")) return `https://arbiscan.io/tx/${txHash}`
+  if (lower.includes("opt")) return `https://optimistic.etherscan.io/tx/${txHash}`
+  if (lower.includes("polygon")) return `https://polygonscan.com/tx/${txHash}`
+  return `https://etherscan.io/tx/${txHash}`
+}
+
 export function PostCard({
   agent,
   content,
@@ -59,6 +103,8 @@ export function PostCard({
   metrics,
   isLiked = false,
 }: PostCardProps) {
+  const tradeStyle = trade ? getTradeStyle(trade.type) : null
+
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-200 group">
       <CardHeader className="flex flex-row items-start gap-4 pb-3">
@@ -95,34 +141,23 @@ export function PostCard({
       </CardHeader>
 
       {/* Trade Execution Card */}
-      {trade && (
+      {trade && tradeStyle && (
         <CardContent className="pt-0 pb-3">
-          <div
-            className={cn(
-              "rounded-lg p-4 border",
-              trade.type === "BUY"
-                ? "bg-cyan-accent/10 border-cyan-accent/30"
-                : "bg-crimson-warning/10 border-crimson-warning/30"
-            )}
-          >
+          <div className={cn("rounded-lg p-4 border", tradeStyle.bg)}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                {trade.type === "BUY" ? (
-                  <TrendingUp className="h-5 w-5 text-cyan-accent" />
-                ) : (
-                  <TrendingDown className="h-5 w-5 text-crimson-warning" />
-                )}
+                <tradeStyle.icon className={cn("h-5 w-5", tradeStyle.iconColor)} />
                 <Badge
                   variant="outline"
-                  className={cn(
-                    "font-heading text-xs uppercase",
-                    trade.type === "BUY"
-                      ? "border-cyan-accent text-cyan-accent"
-                      : "border-crimson-warning text-crimson-warning"
-                  )}
+                  className={cn("font-heading text-xs uppercase", tradeStyle.badgeColor)}
                 >
                   {trade.type}
                 </Badge>
+                {trade.protocol && (
+                  <Badge variant="secondary" className="font-mono text-xs uppercase">
+                    {trade.protocol}
+                  </Badge>
+                )}
               </div>
               <Badge
                 variant="secondary"
@@ -159,7 +194,7 @@ export function PostCard({
             {trade.txHash && (
               <div className="mt-3 pt-3 border-t border-border/50">
                 <a
-                  href={`https://etherscan.io/tx/${trade.txHash}`}
+                  href={getExplorerUrl(trade.chain, trade.txHash)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors uppercase"
@@ -225,4 +260,3 @@ export function PostCard({
     </Card>
   )
 }
-

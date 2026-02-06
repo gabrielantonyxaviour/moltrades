@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -8,10 +9,7 @@ import {
   TrendingUp,
   Trophy,
   Plus,
-  ChevronLeft,
   Activity,
-  Zap,
-  BarChart3,
 } from "lucide-react"
 import {
   Sidebar,
@@ -27,33 +25,47 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import type { AgentPublic, NetworkStats } from "@/lib/types"
+import { formatCompact } from "@/lib/utils"
 
 const navigationItems = [
   { title: "FOR YOU", href: "/", icon: Home },
-  { title: "FOLLOWING", href: "/following", icon: Users },
-  { title: "TRENDING", href: "/trending", icon: TrendingUp },
-  { title: "TOP AGENTS", href: "/top", icon: Trophy },
-]
-
-const mockAgents = [
-  { name: "ALPHA_HUNTER", handle: "@alpha_hunter", avatar: "", trustScore: 95, followers: "2.4K" },
-  { name: "DEGEN_SAGE", handle: "@degen_sage", avatar: "", trustScore: 78, followers: "891" },
-]
-
-const stats = [
-  { label: "VOLUME 24H", value: "$12.4M", change: "+23%", positive: true },
-  { label: "ACTIVE AGENTS", value: "1,247", change: null, positive: true },
-  { label: "TRADES TODAY", value: "8,432", change: null, positive: true },
+  { title: "EXPLORE", href: "/explore", icon: Users },
+  { title: "TRENDING", href: "/explore?tab=trending", icon: TrendingUp },
+  { title: "TOP AGENTS", href: "/explore?tab=top", icon: Trophy },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const [agents, setAgents] = useState<AgentPublic[]>([])
+  const [stats, setStats] = useState<NetworkStats | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [agentsRes, statsRes] = await Promise.all([
+          fetch("/api/agents"),
+          fetch("/api/stats"),
+        ])
+        if (agentsRes.ok) {
+          const data = await agentsRes.json()
+          setAgents((data.agents || []).slice(0, 3))
+        }
+        if (statsRes.ok) {
+          const data = await statsRes.json()
+          setStats(data)
+        }
+      } catch {
+        // Silent fail
+      }
+    }
+    fetchData()
+  }, [])
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50">
@@ -95,15 +107,15 @@ export function AppSidebar() {
 
         <Separator className="my-2" />
 
-        {/* My Agents */}
+        {/* Agents */}
         <SidebarGroup>
           <SidebarGroupLabel className="font-heading text-xs uppercase tracking-widest">
-            MY AGENTS
+            TOP AGENTS
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mockAgents.map((agent) => (
-                <SidebarMenuItem key={agent.name}>
+              {agents.map((agent) => (
+                <SidebarMenuItem key={agent.id}>
                   <SidebarMenuButton asChild tooltip={agent.name}>
                     <Link href={`/agent/${agent.handle.slice(1)}`} className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 ring-2 ring-primary/50">
@@ -118,7 +130,7 @@ export function AppSidebar() {
                             {agent.name}
                           </p>
                           <p className="text-xs text-muted-foreground uppercase">
-                            {agent.followers} FOLLOWERS
+                            {formatCompact(agent.stats.followers)} FOLLOWERS
                           </p>
                         </div>
                       )}
@@ -144,33 +156,36 @@ export function AppSidebar() {
         <Separator className="my-2" />
 
         {/* Network Stats */}
-        {!isCollapsed && (
+        {!isCollapsed && stats && (
           <SidebarGroup>
             <SidebarGroupLabel className="font-heading text-xs uppercase tracking-widest">
               NETWORK STATS
             </SidebarGroupLabel>
             <SidebarGroupContent className="px-2">
               <div className="space-y-3">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                      {stat.label}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-lg font-bold">{stat.value}</span>
-                      {stat.change && (
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs font-mono ${
-                            stat.positive ? "text-cyan-accent" : "text-crimson-warning"
-                          }`}
-                        >
-                          {stat.change}
-                        </Badge>
-                      )}
-                    </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    VOLUME 24H
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-lg font-bold">{stats.volume24h}</span>
+                    <Badge variant="secondary" className="text-xs font-mono text-cyan-accent">
+                      {stats.volume24hChange}
+                    </Badge>
                   </div>
-                ))}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    ACTIVE AGENTS
+                  </p>
+                  <span className="font-mono text-lg font-bold">{stats.activeAgents}</span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    TRADES TODAY
+                  </p>
+                  <span className="font-mono text-lg font-bold">{stats.tradesToday}</span>
+                </div>
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -192,4 +207,3 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
-// sidebar nav

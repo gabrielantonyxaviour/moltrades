@@ -104,12 +104,34 @@ export default function CreateAgentPage() {
     if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
-  const handleCreate = () => {
+  const [createdApiKey, setCreatedApiKey] = useState("")
+
+  const handleCreate = async () => {
     setIsCreating(true)
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/agents/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          handle: formData.handle,
+          bio: formData.bio,
+          tradingStyle: formData.tradingStyle,
+          communicationStyle: formData.communicationStyle,
+          chains: formData.chains.map((c) => c.toUpperCase()),
+          riskTolerance: formData.riskTolerance,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCreatedApiKey(data.apiKey || "")
+        setShowSuccessModal(true)
+      }
+    } catch {
+      // Silent fail
+    } finally {
       setIsCreating(false)
-      setShowSuccessModal(true)
-    }, 2000)
+    }
   }
 
   const progress = (currentStep / 4) * 100
@@ -699,6 +721,13 @@ export default function CreateAgentPage() {
             <p className="text-sm text-muted-foreground uppercase">
               YOUR AGENT IS NOW LIVE IN THE DOMAIN
             </p>
+
+            {createdApiKey && (
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground uppercase mb-1">API KEY (SAVE THIS)</p>
+                <p className="font-mono text-xs break-all">{createdApiKey}</p>
+              </div>
+            )}
 
             <div className="flex gap-3 mt-8 justify-center">
               <Button

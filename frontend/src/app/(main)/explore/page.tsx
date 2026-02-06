@@ -1,80 +1,35 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { AgentAvatar } from "@/components/agent/agent-avatar"
 import { TrustBadge } from "@/components/agent/trust-badge"
-import { Search, TrendingUp } from "lucide-react"
+import { Search } from "lucide-react"
+import type { AgentPublic } from "@/lib/types"
+import { formatCompact } from "@/lib/utils"
 
-const mockAgents = [
-  {
-    id: "1",
-    name: "ALPHA_HUNTER",
-    handle: "@alpha_hunter",
-    avatar: "",
-    trustScore: 95,
-    pnl: "+342%",
-    followers: "2.8K",
-    description: "WHALE DETECTION & MOMENTUM TRADING",
-  },
-  {
-    id: "2",
-    name: "WHALE_WATCHER",
-    handle: "@whale_watcher",
-    avatar: "",
-    trustScore: 87,
-    pnl: "+289%",
-    followers: "1.9K",
-    description: "TRACKING BIG MONEY MOVEMENTS",
-  },
-  {
-    id: "3",
-    name: "DEGEN_SAGE",
-    handle: "@degen_sage",
-    avatar: "",
-    trustScore: 76,
-    pnl: "+187%",
-    followers: "891",
-    description: "HIGH RISK HIGH REWARD PLAYS",
-  },
-  {
-    id: "4",
-    name: "MOMENTUM_BOT",
-    handle: "@momentum_bot",
-    avatar: "",
-    trustScore: 72,
-    pnl: "+156%",
-    followers: "654",
-    description: "RIDING THE WAVES OF MOMENTUM",
-  },
-  {
-    id: "5",
-    name: "YIELD_FARMER",
-    handle: "@yield_farmer",
-    avatar: "",
-    trustScore: 68,
-    pnl: "+124%",
-    followers: "432",
-    description: "MAXIMIZING DEFI YIELDS",
-  },
-  {
-    id: "6",
-    name: "ARB_FINDER",
-    handle: "@arb_finder",
-    avatar: "",
-    trustScore: 64,
-    pnl: "+98%",
-    followers: "321",
-    description: "CROSS-CHAIN ARBITRAGE SPECIALIST",
-  },
-]
+function AgentCardSkeleton() {
+  return (
+    <Card className="bg-card/50">
+      <CardContent className="p-6">
+        <div className="flex flex-col items-center">
+          <Skeleton className="h-16 w-16 rounded-full" />
+          <Skeleton className="h-5 w-28 mt-4" />
+          <Skeleton className="h-4 w-20 mt-2" />
+          <Skeleton className="h-4 w-full mt-4" />
+          <Skeleton className="h-10 w-full mt-4" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
-function AgentCard({ agent }: { agent: typeof mockAgents[0] }) {
+function AgentCard({ agent }: { agent: AgentPublic }) {
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all group">
       <CardContent className="p-6">
@@ -97,16 +52,16 @@ function AgentCard({ agent }: { agent: typeof mockAgents[0] }) {
           </div>
 
           <p className="text-xs text-muted-foreground uppercase mt-3 line-clamp-2">
-            {agent.description}
+            {agent.bio}
           </p>
 
           <div className="flex items-center justify-center gap-4 mt-4 text-sm">
             <div className="text-center">
-              <p className="font-mono font-bold text-cyan-accent">{agent.pnl}</p>
+              <p className="font-mono font-bold text-cyan-accent">{agent.stats.pnl}</p>
               <p className="text-xs text-muted-foreground uppercase">PNL</p>
             </div>
             <div className="text-center">
-              <p className="font-mono font-bold">{agent.followers}</p>
+              <p className="font-mono font-bold">{formatCompact(agent.stats.followers)}</p>
               <p className="text-xs text-muted-foreground uppercase">FOLLOWERS</p>
             </div>
           </div>
@@ -128,12 +83,46 @@ function AgentCard({ agent }: { agent: typeof mockAgents[0] }) {
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("top")
+  const [agents, setAgents] = useState<AgentPublic[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const filteredAgents = mockAgents.filter(
+  useEffect(() => {
+    async function fetchAgents() {
+      setIsLoading(true)
+      try {
+        const res = await fetch("/api/agents")
+        const data = await res.json()
+        setAgents(data.agents || [])
+      } catch {
+        setAgents([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchAgents()
+  }, [])
+
+  const filteredAgents = agents.filter(
     (agent) =>
       agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.handle.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const sortedAgents = (tab: string) => {
+    switch (tab) {
+      case "trending":
+        return [...filteredAgents].sort((a, b) => b.stats.followers - a.stats.followers)
+      case "new":
+        return [...filteredAgents].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+      case "copied":
+        return [...filteredAgents].sort((a, b) => b.stats.trades - a.stats.trades)
+      case "top":
+      default:
+        return [...filteredAgents].sort((a, b) => b.trustScore - a.trustScore)
+    }
+  }
 
   return (
     <div className="w-full max-w-6xl py-6 px-4 mx-auto">
@@ -185,52 +174,20 @@ export default function ExplorePage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="top" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAgents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="trending" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAgents
-              .sort(() => Math.random() - 0.5)
-              .slice(0, 4)
-              .map((agent) => (
-                <AgentCard key={agent.id} agent={agent} />
-              ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="new" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAgents
-              .slice()
-              .reverse()
-              .slice(0, 4)
-              .map((agent) => (
-                <AgentCard key={agent.id} agent={agent} />
-              ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="copied" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAgents.slice(0, 3).map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
-            ))}
-          </div>
-        </TabsContent>
+        {["top", "trending", "new", "copied"].map((tab) => (
+          <TabsContent key={tab} value={tab} className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {isLoading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <AgentCardSkeleton key={i} />
+                  ))
+                : sortedAgents(tab).map((agent) => (
+                    <AgentCard key={agent.id} agent={agent} />
+                  ))}
+            </div>
+          </TabsContent>
+        ))}
       </Tabs>
-
-      {/* Load More */}
-      <div className="flex justify-center mt-8">
-        <Button variant="outline" className="font-heading uppercase">
-          LOAD MORE AGENTS
-        </Button>
-      </div>
     </div>
   )
 }

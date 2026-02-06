@@ -24,7 +24,7 @@ export function useClaudeStream(options: UseClaudeStreamOptions = {}) {
   optionsRef.current = options;
 
   const sendMessage = useCallback(
-    async (prompt: string, claudeSessionId?: string) => {
+    async (prompt: string, claudeSessionId?: string, systemPrompt?: string) => {
       // Abort previous stream if any
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -47,11 +47,16 @@ export function useClaudeStream(options: UseClaudeStreamOptions = {}) {
       let success = true;
 
       try {
+        // Prepend system prompt on first message of a conversation
+        const fullPrompt = systemPrompt
+          ? `${systemPrompt}\n\n---\n\nUser message: ${prompt}`
+          : prompt;
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt,
+            prompt: fullPrompt,
             ...(claudeSessionId && { sessionId: claudeSessionId }),
           }),
           signal: controller.signal,

@@ -6,19 +6,17 @@ import { Node, Edge } from "@xyflow/react";
 
 import { ChatInput } from "@/components/core-engine/chat-input";
 import { ChatPanel } from "@/components/core-engine/chat-panel";
+import { ResizeHandle } from "@/components/core-engine/resize-handle";
 import { FlowCanvas } from "@/components/trade/flow-canvas";
 
 import { useConversations } from "@/hooks/use-conversations";
 import { useClaudeStream } from "@/hooks/use-claude-stream";
 import { parseIntent, isValidIntent } from "@/lib/lifi/intent-parser";
 import { generateFlowFromIntent } from "@/lib/lifi/flow-generator";
+import { SYSTEM_PROMPT } from "@/lib/core-engine/system-prompt";
 
 import type { EngineState, LogEntry } from "@/lib/core-engine/types";
 
-/**
- * Try to extract a valid trade intent from all user messages combined.
- * Scans newest-first, then tries combining all messages.
- */
 function tryExtractIntent(userMessages: string[]) {
   for (let i = userMessages.length - 1; i >= 0; i--) {
     const intent = parseIntent(userMessages[i]);
@@ -36,6 +34,7 @@ export default function CoreEnginePage() {
   const [engineState, setEngineState] = useState<EngineState>("idle");
   const [flowNodes, setFlowNodes] = useState<Node[]>([]);
   const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
+  const [splitRatio, setSplitRatio] = useState(0.5);
 
   const {
     conversations,
@@ -52,7 +51,6 @@ export default function CoreEnginePage() {
     setTitle,
   } = useConversations();
 
-  // Restore engine state on load
   useEffect(() => {
     if (loaded && activeConversation && activeConversation.messages.length > 0) {
       setEngineState("active");
@@ -91,7 +89,6 @@ export default function CoreEnginePage() {
         addMessage(activeId, { role: "assistant", content: text });
       }
 
-      // Try to build flow from all user messages
       if (activeConversation) {
         const userTexts = activeConversation.messages
           .filter((m) => m.role === "user")
@@ -104,7 +101,6 @@ export default function CoreEnginePage() {
         }
       }
 
-      // Title from first user message
       if (activeConversation && activeConversation.messages.length <= 2) {
         const firstUserMsg = activeConversation.messages.find(
           (m) => m.role === "user"
@@ -142,8 +138,15 @@ export default function CoreEnginePage() {
 
       addMessage(convId, { role: "user", content: message });
 
+      // Determine if this is the first message (no claudeSessionId yet)
       const conv = conversations.find((c) => c.id === convId);
-      sendMessage(message, conv?.claudeSessionId);
+      const isFirstMessage = !conv?.claudeSessionId;
+
+      sendMessage(
+        message,
+        conv?.claudeSessionId,
+        isFirstMessage ? SYSTEM_PROMPT : undefined
+      );
     },
     [activeId, engineState, conversations, createConversation, addMessage, sendMessage]
   );
@@ -230,7 +233,7 @@ export default function CoreEnginePage() {
     );
   }
 
-  // ---- ACTIVE STATE: 50/50 split ----
+  // ---- ACTIVE STATE: Resizable split ----
   return (
     <div className="flex-1 flex flex-col">
       {/* Conversation tabs */}
@@ -270,10 +273,10 @@ export default function CoreEnginePage() {
         </button>
       </div>
 
-      {/* Main area: FlowCanvas (left) | Chat (right) */}
-      <div className="flex-1 flex min-h-0">
-        {/* Left half: Flow Canvas */}
-        <div className="w-1/2 min-w-0">
+      {/* Main area: FlowCanvas | ResizeHandle | Chat */}
+      <div className="flex-1 flex min-h-0 relative">
+        {/* Left: Flow Canvas */}
+        <div style={{ width: `${splitRatio * 100}%` }} className="min-w-0 shrink-0">
           <FlowCanvas
             nodes={flowNodes}
             edges={flowEdges}
@@ -284,8 +287,11 @@ export default function CoreEnginePage() {
           />
         </div>
 
-        {/* Right half: Chat */}
-        <div className="w-1/2 min-w-0">
+        {/* Draggable divider */}
+        <ResizeHandle ratio={splitRatio} onRatioChange={setSplitRatio} />
+
+        {/* Right: Chat */}
+        <div style={{ width: `${(1 - splitRatio) * 100}%` }} className="min-w-0 shrink-0">
           <ChatPanel
             messages={activeConversation?.messages || []}
             logEntries={activeConversation?.logEntries || []}

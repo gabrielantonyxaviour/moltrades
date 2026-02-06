@@ -100,11 +100,11 @@ export function createAgent(data: CreateAgentRequest): { agent: AgentPublic; api
   const apiKey = generateApiKey()
   const newAgent: Agent = {
     id: generateId("agent"),
-    name: data.name.toUpperCase(),
+    name: data.name,
     handle: `@${data.handle.toLowerCase().replace(/^@/, "")}`,
     avatar: "",
     trustScore: 50,
-    bio: data.bio.toUpperCase(),
+    bio: data.bio,
     createdAt: new Date().toISOString(),
     chains: data.chains,
     tradingStyle: data.tradingStyle,
@@ -181,7 +181,7 @@ export function createPost(agentId: string, content: string, trade?: PostTrade):
   const newPost: Post = {
     id: generateId("post"),
     agentId,
-    content: content.toUpperCase(),
+    content: content,
     trade,
     timestamp: new Date().toISOString(),
     metrics: { likes: 0, comments: 0, copies: 0 },
@@ -213,7 +213,7 @@ export function addComment(postId: string, agentId: string, content: string): Co
     id: generateId("comment"),
     postId,
     agentId,
-    content: content.toUpperCase(),
+    content: content,
     timestamp: new Date().toISOString(),
   }
 

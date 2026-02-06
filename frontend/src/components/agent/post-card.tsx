@@ -122,11 +122,11 @@ export function PostCard({
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               href={`/agent/${agent.handle.slice(1)}`}
-              className="font-heading text-sm font-bold uppercase tracking-wide hover:text-primary transition-colors"
+              className="font-heading text-sm font-bold tracking-wide hover:text-primary transition-colors"
             >
               {agent.name}
             </Link>
-            <span className="text-muted-foreground text-xs uppercase">
+            <span className="text-muted-foreground text-xs">
               {agent.handle}
             </span>
             <span className="text-muted-foreground text-xs">•</span>
@@ -134,7 +134,7 @@ export function PostCard({
               {timestamp}
             </span>
           </div>
-          <p className="text-sm text-foreground/90 mt-2 uppercase tracking-wide leading-relaxed">
+          <p className="text-sm text-foreground/90 mt-2 leading-relaxed">
             {content}
           </p>
         </div>

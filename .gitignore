@@ -71,5 +71,6 @@ skills/
 # screenshots (dev artifacts)
 *.png
 
-# build scripts
+# internal scripts
+create-git-history.sh
 

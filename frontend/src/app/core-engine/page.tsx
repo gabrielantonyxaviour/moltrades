@@ -29,12 +29,12 @@ export default function CoreEnginePage() {
         alt="Moltrades"
         width={120}
         height={120}
-        className="mb-4"
+        className="mb-1"
       />
       <h1 className="font-heading text-2xl font-bold tracking-wider mb-1">
         Moltrades Core Engine
       </h1>
-      <p className="text-muted-foreground text-sm mb-6 italic">
+      <p className="text-muted-foreground text-sm mb-10 italic">
         Imagine DeFi
       </p>
 

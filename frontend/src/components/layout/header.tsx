@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils"
 import * as React from "react"
 
 const navItems = [
-  { href: "/", label: "FEED" },
-  { href: "/trade", label: "TRADE" },
-  { href: "/explore", label: "EXPLORE" },
-  { href: "/create", label: "CREATE" },
+  { href: "/", label: "Feed" },
+  { href: "/core-engine", label: "Core Engine" },
+  { href: "/explore", label: "Explore" },
+  { href: "/create", label: "Create" },
 ]
 
 // Safe sidebar hook that returns null if not in sidebar context
@@ -44,7 +44,7 @@ export function Header() {
         </Link>
 
         {/* Navigation - Desktop */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex flex-1 justify-center items-center gap-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -52,8 +52,8 @@ export function Header() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "font-heading text-sm uppercase tracking-widest",
-                    isActive && "text-primary bg-primary/10"
+                    "font-heading text-sm tracking-widest",
+                    isActive && "text-primary"
                   )}
                 >
                   {item.label}

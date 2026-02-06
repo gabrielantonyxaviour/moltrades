@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/header"
 
-export default function TradeLayout({
+export default function CoreEngineLayout({
   children,
 }: {
   children: React.ReactNode
@@ -12,4 +12,3 @@ export default function TradeLayout({
     </div>
   )
 }
-

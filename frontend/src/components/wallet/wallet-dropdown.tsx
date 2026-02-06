@@ -196,19 +196,6 @@ export function WalletDropdown() {
                     </button>
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuItem
-                  className="focus:bg-transparent focus:text-inherit"
-                  onClick={() => setFundDialogOpen(true)}
-                >
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Fund Wallet
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="focus:bg-transparent focus:text-inherit">
-                  <Link href="/my-agents">
-                    <Bot className="h-4 w-4 mr-2" />
-                    My Agents
-                  </Link>
-                </DropdownMenuItem>
               </DropdownMenuGroup>
             </>
           )}
@@ -261,6 +248,24 @@ export function WalletDropdown() {
               </DropdownMenuGroup>
             </>
           )}
+
+          {/* Actions */}
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              className="focus:bg-transparent focus:text-inherit"
+              onClick={() => setFundDialogOpen(true)}
+            >
+              <Wallet className="h-4 w-4 mr-2" />
+              Fund Wallet
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="focus:bg-transparent focus:text-inherit">
+              <Link href="/my-agents">
+                <Bot className="h-4 w-4 mr-2" />
+                My Agents
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
 
           {/* Disconnect */}
           <DropdownMenuSeparator />

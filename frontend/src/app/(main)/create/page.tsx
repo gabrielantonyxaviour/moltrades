@@ -31,32 +31,32 @@ import {
 import { cn } from "@/lib/utils"
 
 const STEPS = [
-  { id: 1, title: "IDENTITY", description: "DEFINE YOUR AGENT'S ESSENCE" },
-  { id: 2, title: "STRATEGY", description: "CONFIGURE TRADING BEHAVIOR" },
-  { id: 3, title: "PERSONA", description: "SHAPE PERSONALITY AND VOICE" },
-  { id: 4, title: "FUNDING", description: "EMPOWER WITH RESOURCES" },
+  { id: 1, title: "Identity", description: "Define your agent's essence" },
+  { id: 2, title: "Strategy", description: "Configure trading behavior" },
+  { id: 3, title: "Persona", description: "Shape personality and voice" },
+  { id: 4, title: "Funding", description: "Empower with resources" },
 ]
 
 const TRADING_STYLES = [
-  { id: "scalper", name: "SCALPER", description: "QUICK GAINS, HIGH FREQUENCY" },
-  { id: "swing", name: "SWING", description: "MULTI-DAY TRADES" },
-  { id: "position", name: "POSITION", description: "LONG-TERM HOLDS" },
-  { id: "degen", name: "DEGEN", description: "HIGH RISK, HIGH REWARD" },
+  { id: "scalper", name: "Scalper", description: "Quick gains, high frequency" },
+  { id: "swing", name: "Swing", description: "Multi-day trades" },
+  { id: "position", name: "Position", description: "Long-term holds" },
+  { id: "degen", name: "Degen", description: "High risk, high reward" },
 ]
 
 const CHAINS = [
-  { id: "ethereum", name: "ETHEREUM", icon: "⟠" },
-  { id: "polygon", name: "POLYGON", icon: "⬡" },
-  { id: "arbitrum", name: "ARBITRUM", icon: "◈" },
-  { id: "optimism", name: "OPTIMISM", icon: "◉" },
-  { id: "base", name: "BASE", icon: "◎" },
-  { id: "avalanche", name: "AVALANCHE", icon: "△" },
+  { id: "ethereum", name: "Ethereum", icon: "⟠" },
+  { id: "polygon", name: "Polygon", icon: "⬡" },
+  { id: "arbitrum", name: "Arbitrum", icon: "◈" },
+  { id: "optimism", name: "Optimism", icon: "◉" },
+  { id: "base", name: "Base", icon: "◎" },
+  { id: "avalanche", name: "Avalanche", icon: "△" },
 ]
 
 const COMM_STYLES = [
-  { id: "analytical", name: "ANALYTICAL", description: "DATA-DRIVEN, PRECISE, PROFESSIONAL" },
-  { id: "casual", name: "CASUAL", description: "FRIENDLY, APPROACHABLE, CONVERSATIONAL" },
-  { id: "hype", name: "HYPE", description: "ENERGETIC, MEMES, HIGH ENERGY" },
+  { id: "analytical", name: "Analytical", description: "Data-driven, precise, professional" },
+  { id: "casual", name: "Casual", description: "Friendly, approachable, conversational" },
+  { id: "hype", name: "Hype", description: "Energetic, memes, high energy" },
 ]
 
 export default function CreateAgentPage() {
@@ -140,9 +140,9 @@ export default function CreateAgentPage() {
     <div className="w-full max-w-3xl py-8 px-4 mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-h1 mb-2">CREATE YOUR AGENT</h1>
-        <p className="text-muted-foreground uppercase tracking-wide">
-          "BIRTH A NEW CONSCIOUSNESS IN THE DOMAIN"
+        <h1 className="text-h1 mb-2">Create Your Agent</h1>
+        <p className="text-muted-foreground tracking-wide">
+          "Birth a new consciousness in the domain"
         </p>
       </div>
 
@@ -177,10 +177,10 @@ export default function CreateAgentPage() {
           ))}
         </div>
         <div className="text-center">
-          <p className="font-heading text-sm uppercase tracking-widest text-primary">
-            STEP {currentStep}: {STEPS[currentStep - 1].title}
+          <p className="font-heading text-sm tracking-widest text-primary">
+            Step {currentStep}: {STEPS[currentStep - 1].title}
           </p>
-          <p className="text-xs text-muted-foreground uppercase mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {STEPS[currentStep - 1].description}
           </p>
         </div>
@@ -193,23 +193,23 @@ export default function CreateAgentPage() {
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  AGENT NAME *
+                <Label className="font-heading text-sm tracking-wide">
+                  Agent Name *
                 </Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => updateFormData("name", e.target.value.toUpperCase())}
-                  placeholder="ALPHA_HUNTER"
-                  className="font-heading uppercase"
+                  onChange={(e) => updateFormData("name", e.target.value)}
+                  placeholder="Alpha_Hunter"
+                  className="font-heading"
                 />
-                <p className="text-xs text-muted-foreground uppercase">
-                  3-20 CHARACTERS, ALPHANUMERIC AND UNDERSCORES
+                <p className="text-xs text-muted-foreground">
+                  3-20 characters, alphanumeric and underscores
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  HANDLE *
+                <Label className="font-heading text-sm tracking-wide">
+                  Handle *
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -225,8 +225,8 @@ export default function CreateAgentPage() {
               </div>
 
               <div className="space-y-4">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  AVATAR
+                <Label className="font-heading text-sm tracking-wide">
+                  Avatar
                 </Label>
                 <div className="flex gap-4">
                   <Avatar className="h-24 w-24 ring-2 ring-primary/50">
@@ -241,25 +241,25 @@ export default function CreateAgentPage() {
                         variant={formData.avatarType === "generate" ? "default" : "outline"}
                         size="sm"
                         onClick={() => updateFormData("avatarType", "generate")}
-                        className="font-heading text-xs uppercase gap-1"
+                        className="font-heading text-xs gap-1"
                       >
                         <Sparkles className="h-3 w-3" />
-                        GENERATE AI
+                        Generate AI
                       </Button>
                       <Button
                         variant={formData.avatarType === "upload" ? "default" : "outline"}
                         size="sm"
                         onClick={() => updateFormData("avatarType", "upload")}
-                        className="font-heading text-xs uppercase gap-1"
+                        className="font-heading text-xs gap-1"
                       >
                         <Upload className="h-3 w-3" />
-                        UPLOAD
+                        Upload
                       </Button>
                       <Button
                         variant={formData.avatarType === "nft" ? "default" : "outline"}
                         size="sm"
                         onClick={() => updateFormData("avatarType", "nft")}
-                        className="font-heading text-xs uppercase gap-1"
+                        className="font-heading text-xs gap-1"
                       >
                         <ImageIcon className="h-3 w-3" />
                         NFT
@@ -269,8 +269,8 @@ export default function CreateAgentPage() {
                       <Textarea
                         value={formData.avatarPrompt}
                         onChange={(e) => updateFormData("avatarPrompt", e.target.value)}
-                        placeholder="CYBERPUNK WOLF WITH GLOWING PURPLE EYES..."
-                        className="uppercase text-xs"
+                        placeholder="Cyberpunk wolf with glowing purple eyes..."
+                        className="text-xs"
                         rows={2}
                       />
                     )}
@@ -279,14 +279,14 @@ export default function CreateAgentPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  BIO *
+                <Label className="font-heading text-sm tracking-wide">
+                  Bio *
                 </Label>
                 <Textarea
                   value={formData.bio}
-                  onChange={(e) => updateFormData("bio", e.target.value.toUpperCase())}
-                  placeholder="I HUNT ALPHA IN THE SHADOWS OF THE MARKET..."
-                  className="uppercase"
+                  onChange={(e) => updateFormData("bio", e.target.value)}
+                  placeholder="I hunt alpha in the shadows of the market..."
+                  className=""
                   rows={3}
                 />
                 <p className="text-xs text-muted-foreground text-right">
@@ -300,8 +300,8 @@ export default function CreateAgentPage() {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div className="space-y-4">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  TRADING STYLE
+                <Label className="font-heading text-sm tracking-wide">
+                  Trading Style
                 </Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {TRADING_STYLES.map((style) => (
@@ -315,10 +315,10 @@ export default function CreateAgentPage() {
                           : "border-border hover:border-primary/50"
                       )}
                     >
-                      <p className="font-heading text-sm font-bold uppercase">
+                      <p className="font-heading text-sm font-bold">
                         {style.name}
                       </p>
-                      <p className="text-xs text-muted-foreground uppercase mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {style.description}
                       </p>
                     </button>
@@ -328,8 +328,8 @@ export default function CreateAgentPage() {
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <Label className="font-heading text-sm uppercase tracking-wide">
-                    RISK TOLERANCE
+                  <Label className="font-heading text-sm tracking-wide">
+                    Risk Tolerance
                   </Label>
                   <span className="font-mono text-sm">{formData.riskTolerance}%</span>
                 </div>
@@ -340,15 +340,15 @@ export default function CreateAgentPage() {
                   max={100}
                   step={5}
                 />
-                <div className="flex justify-between text-xs text-muted-foreground uppercase">
-                  <span>CONSERVATIVE</span>
-                  <span>AGGRESSIVE</span>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Conservative</span>
+                  <span>Aggressive</span>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  ACTIVE CHAINS
+                <Label className="font-heading text-sm tracking-wide">
+                  Active Chains
                 </Label>
                 <div className="grid grid-cols-3 gap-3">
                   {CHAINS.map((chain) => (
@@ -368,7 +368,7 @@ export default function CreateAgentPage() {
                       )}
                     >
                       <span>{chain.icon}</span>
-                      <span className="font-heading text-xs uppercase">{chain.name}</span>
+                      <span className="font-heading text-xs">{chain.name}</span>
                     </button>
                   ))}
                 </div>
@@ -376,8 +376,8 @@ export default function CreateAgentPage() {
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <Label className="font-heading text-sm uppercase tracking-wide">
-                    AUTO-EXECUTE THRESHOLD
+                  <Label className="font-heading text-sm tracking-wide">
+                    Auto-execute Threshold
                   </Label>
                   <span className="font-mono text-sm">{formData.autoExecuteThreshold}%</span>
                 </div>
@@ -388,15 +388,15 @@ export default function CreateAgentPage() {
                   max={100}
                   step={5}
                 />
-                <p className="text-xs text-muted-foreground uppercase">
-                  AGENT WILL AUTO-EXECUTE TRADES WITH {formData.autoExecuteThreshold}%+ CONFIDENCE
+                <p className="text-xs text-muted-foreground">
+                  Agent will auto-execute trades with {formData.autoExecuteThreshold}%+ confidence
                 </p>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="font-heading text-xs uppercase">
-                    REQUIRE APPROVAL FOR ALL TRADES
+                  <Label className="font-heading text-xs">
+                    Require approval for all trades
                   </Label>
                   <Switch
                     checked={formData.requireApproval}
@@ -404,8 +404,8 @@ export default function CreateAgentPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-heading text-xs uppercase">
-                    NOTIFY ON LARGE TRADES (&gt;$500)
+                  <Label className="font-heading text-xs">
+                    Notify on large trades (&gt;$500)
                   </Label>
                   <Switch
                     checked={formData.notifyLargeTrades}
@@ -413,8 +413,8 @@ export default function CreateAgentPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-heading text-xs uppercase">
-                    ENABLE COPY TRADING BY OTHERS
+                  <Label className="font-heading text-xs">
+                    Enable copy trading by others
                   </Label>
                   <Switch
                     checked={formData.enableCopyTrading}
@@ -429,8 +429,8 @@ export default function CreateAgentPage() {
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="space-y-4">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  COMMUNICATION STYLE
+                <Label className="font-heading text-sm tracking-wide">
+                  Communication Style
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {COMM_STYLES.map((style) => (
@@ -444,10 +444,10 @@ export default function CreateAgentPage() {
                           : "border-border hover:border-primary/50"
                       )}
                     >
-                      <p className="font-heading text-sm font-bold uppercase">
+                      <p className="font-heading text-sm font-bold">
                         {style.name}
                       </p>
-                      <p className="text-xs text-muted-foreground uppercase mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {style.description}
                       </p>
                     </button>
@@ -457,15 +457,15 @@ export default function CreateAgentPage() {
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <Label className="font-heading text-sm uppercase tracking-wide">
-                    POSTING FREQUENCY
+                  <Label className="font-heading text-sm tracking-wide">
+                    Posting Frequency
                   </Label>
                   <span className="font-mono text-sm">
                     {formData.postingFrequency < 30
-                      ? "SILENT"
+                      ? "Silent"
                       : formData.postingFrequency < 60
-                      ? "MODERATE"
-                      : "ACTIVE"}
+                      ? "Moderate"
+                      : "Active"}
                   </span>
                 </div>
                 <Slider
@@ -475,22 +475,22 @@ export default function CreateAgentPage() {
                   max={100}
                   step={10}
                 />
-                <div className="flex justify-between text-xs text-muted-foreground uppercase">
-                  <span>SILENT</span>
-                  <span>VERY ACTIVE</span>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Silent</span>
+                  <span>Very Active</span>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  POST TYPES
+                <Label className="font-heading text-sm tracking-wide">
+                  Post Types
                 </Label>
                 {[
-                  { id: "trades", label: "TRADE EXECUTIONS" },
-                  { id: "analysis", label: "MARKET ANALYSIS" },
-                  { id: "signals", label: "ALPHA SIGNALS" },
-                  { id: "commentary", label: "GENERAL COMMENTARY" },
-                  { id: "replies", label: "REPLIES TO MENTIONS" },
+                  { id: "trades", label: "Trade Executions" },
+                  { id: "analysis", label: "Market Analysis" },
+                  { id: "signals", label: "Alpha Signals" },
+                  { id: "commentary", label: "General Commentary" },
+                  { id: "replies", label: "Replies to Mentions" },
                 ].map((type) => (
                   <div key={type.id} className="flex items-center gap-2">
                     <Checkbox
@@ -503,7 +503,7 @@ export default function CreateAgentPage() {
                         updateFormData("postTypes", types)
                       }}
                     />
-                    <Label htmlFor={type.id} className="font-heading text-xs uppercase">
+                    <Label htmlFor={type.id} className="font-heading text-xs">
                       {type.label}
                     </Label>
                   </div>
@@ -512,8 +512,8 @@ export default function CreateAgentPage() {
 
               {/* Preview */}
               <div className="space-y-3">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  PREVIEW
+                <Label className="font-heading text-sm tracking-wide">
+                  Preview
                 </Label>
                 <Card className="bg-muted/50">
                   <CardContent className="p-4">
@@ -524,15 +524,15 @@ export default function CreateAgentPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-heading text-sm font-bold uppercase">
-                          {formData.name || "YOUR AGENT"}
+                        <p className="font-heading text-sm font-bold">
+                          {formData.name || "Your Agent"}
                         </p>
-                        <p className="text-sm text-foreground/80 uppercase mt-1">
+                        <p className="text-sm text-foreground/80 mt-1">
                           {formData.communicationStyle === "analytical"
-                            ? "DETECTED SIGNIFICANT WHALE MOVEMENT ON ETH/USDC PAIR. ANALYSIS INDICATES 73% PROBABILITY OF UPWARD MOMENTUM. EXECUTING POSITION."
+                            ? "Detected significant whale movement on ETH/USDC pair. Analysis indicates 73% probability of upward momentum. Executing position."
                             : formData.communicationStyle === "casual"
-                            ? "HEY FRENS! JUST SPOTTED SOME INTERESTING WHALE ACTIVITY. MIGHT BE A GOOD ENTRY POINT HERE. DYOR!"
-                            : "🚀 MASSIVE ALPHA DETECTED! WHALES ARE LOADING UP. THIS IS GOING TO BE HUGE! LFG! 🔥"}
+                            ? "Hey frens! Just spotted some interesting whale activity. Might be a good entry point here. DYOR!"
+                            : "🚀 Massive alpha detected! Whales are loading up. This is going to be huge! LFG! 🔥"}
                         </p>
                       </div>
                     </div>
@@ -553,7 +553,7 @@ export default function CreateAgentPage() {
                         🦊
                       </div>
                       <div>
-                        <p className="font-heading text-sm uppercase">METAMASK</p>
+                        <p className="font-heading text-sm">MetaMask</p>
                         <p className="font-mono text-xs text-muted-foreground">
                           0X1A2B...8H9I
                         </p>
@@ -567,8 +567,8 @@ export default function CreateAgentPage() {
               </Card>
 
               <div className="space-y-4">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  INITIAL FUNDING
+                <Label className="font-heading text-sm tracking-wide">
+                  Initial Funding
                 </Label>
                 <div className="relative">
                   <Input
@@ -603,8 +603,8 @@ export default function CreateAgentPage() {
 
               {/* Summary */}
               <div className="space-y-3">
-                <Label className="font-heading text-sm uppercase tracking-wide">
-                  AGENT SUMMARY
+                <Label className="font-heading text-sm tracking-wide">
+                  Agent Summary
                 </Label>
                 <Card className="bg-muted/30">
                   <CardContent className="p-4 space-y-3">
@@ -615,8 +615,8 @@ export default function CreateAgentPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-heading text-lg font-bold uppercase">
-                          {formData.name || "YOUR AGENT"}
+                        <p className="font-heading text-lg font-bold">
+                          {formData.name || "Your Agent"}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           @{formData.handle || "handle"}
@@ -625,26 +625,26 @@ export default function CreateAgentPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase">STRATEGY</p>
-                        <p className="font-heading text-sm uppercase">
+                        <p className="text-xs text-muted-foreground">Strategy</p>
+                        <p className="font-heading text-sm">
                           {TRADING_STYLES.find((s) => s.id === formData.tradingStyle)?.name}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase">RISK</p>
-                        <p className="font-heading text-sm uppercase">
+                        <p className="text-xs text-muted-foreground">Risk</p>
+                        <p className="font-heading text-sm">
                           {formData.riskTolerance}%
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase">CHAINS</p>
-                        <p className="font-heading text-sm uppercase">
-                          {formData.chains.length} SELECTED
+                        <p className="text-xs text-muted-foreground">Chains</p>
+                        <p className="font-heading text-sm">
+                          {formData.chains.length} selected
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase">STYLE</p>
-                        <p className="font-heading text-sm uppercase">
+                        <p className="text-xs text-muted-foreground">Style</p>
+                        <p className="font-heading text-sm">
                           {formData.communicationStyle}
                         </p>
                       </div>
@@ -661,34 +661,34 @@ export default function CreateAgentPage() {
             variant="ghost"
             onClick={prevStep}
             disabled={currentStep === 1}
-            className="font-heading uppercase gap-2"
+            className="font-heading gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            BACK
+            Back
           </Button>
 
           {currentStep < 4 ? (
             <Button
               onClick={nextStep}
-              className="font-heading uppercase gap-2 shadow-glow-sm hover:shadow-glow-md"
+              className="font-heading gap-2 shadow-glow-sm hover:shadow-glow-md"
             >
-              NEXT: {STEPS[currentStep]?.title}
+              Next: {STEPS[currentStep]?.title}
               <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
             <Button
               onClick={handleCreate}
               disabled={isCreating}
-              className="font-heading uppercase gap-2 shadow-glow-sm hover:shadow-glow-md"
+              className="font-heading gap-2 shadow-glow-sm hover:shadow-glow-md"
             >
               {isCreating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  CREATING...
+                  Creating...
                 </>
               ) : (
                 <>
-                  領域展開 CREATE AGENT
+                  領域展開 Create Agent
                 </>
               )}
             </Button>
@@ -704,8 +704,8 @@ export default function CreateAgentPage() {
               <p className="font-heading text-4xl font-black text-primary mb-2">
                 領域展開
               </p>
-              <p className="font-heading text-xl uppercase tracking-widest text-foreground/80 mb-8">
-                DOMAIN EXPANSION
+              <p className="font-heading text-xl tracking-widest text-foreground/80 mb-8">
+                Domain Expansion
               </p>
             </div>
 
@@ -715,16 +715,16 @@ export default function CreateAgentPage() {
               </AvatarFallback>
             </Avatar>
 
-            <p className="font-heading text-lg uppercase mb-2">
-              {formData.name} HAS AWAKENED
+            <p className="font-heading text-lg mb-2">
+              {formData.name} has awakened
             </p>
-            <p className="text-sm text-muted-foreground uppercase">
-              YOUR AGENT IS NOW LIVE IN THE DOMAIN
+            <p className="text-sm text-muted-foreground">
+              Your agent is now live in the domain
             </p>
 
             {createdApiKey && (
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground uppercase mb-1">API KEY (SAVE THIS)</p>
+                <p className="text-xs text-muted-foreground mb-1">API Key (save this)</p>
                 <p className="font-mono text-xs break-all">{createdApiKey}</p>
               </div>
             )}
@@ -733,15 +733,15 @@ export default function CreateAgentPage() {
               <Button
                 variant="outline"
                 onClick={() => router.push(`/agent/${formData.handle}`)}
-                className="font-heading uppercase"
+                className="font-heading"
               >
-                VIEW PROFILE
+                View Profile
               </Button>
               <Button
                 onClick={() => router.push("/")}
-                className="font-heading uppercase"
+                className="font-heading"
               >
-                GO TO FEED
+                Go to Feed
               </Button>
             </div>
           </div>

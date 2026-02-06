@@ -5,8 +5,7 @@ import Image from "next/image";
 import { Node, Edge } from "@xyflow/react";
 
 import { ChatInput } from "@/components/core-engine/chat-input";
-import { MessageList } from "@/components/core-engine/message-list";
-import { AiLogsPanel } from "@/components/core-engine/ai-logs-panel";
+import { ChatPanel } from "@/components/core-engine/chat-panel";
 import { FlowCanvas } from "@/components/trade/flow-canvas";
 
 import { useConversations } from "@/hooks/use-conversations";
@@ -18,26 +17,18 @@ import type { EngineState, LogEntry } from "@/lib/core-engine/types";
 
 /**
  * Try to extract a valid trade intent from all user messages combined.
- * This allows multi-turn conversations where details accumulate.
+ * Scans newest-first, then tries combining all messages.
  */
 function tryExtractIntent(userMessages: string[]) {
-  // Try each message individually (most recent first)
   for (let i = userMessages.length - 1; i >= 0; i--) {
     const intent = parseIntent(userMessages[i]);
-    if (isValidIntent(intent)) {
-      return intent;
-    }
+    if (isValidIntent(intent)) return intent;
   }
-
-  // Try combining all user messages into one context string
   if (userMessages.length > 1) {
     const combined = userMessages.join(" ");
     const intent = parseIntent(combined);
-    if (isValidIntent(intent)) {
-      return intent;
-    }
+    if (isValidIntent(intent)) return intent;
   }
-
   return null;
 }
 
@@ -45,8 +36,6 @@ export default function CoreEnginePage() {
   const [engineState, setEngineState] = useState<EngineState>("idle");
   const [flowNodes, setFlowNodes] = useState<Node[]>([]);
   const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
-
-  const flowReady = flowNodes.length > 0;
 
   const {
     conversations,
@@ -95,22 +84,18 @@ export default function CoreEnginePage() {
   );
 
   const handleComplete = useCallback(
-    (text: string, success: boolean) => {
+    (text: string, _success: boolean) => {
       if (!activeId) return;
 
-      // Add assistant message
       if (text) {
         addMessage(activeId, { role: "assistant", content: text });
       }
 
-      // Try to build a flow from all user messages in the conversation
+      // Try to build flow from all user messages
       if (activeConversation) {
-        const userTexts = [
-          ...activeConversation.messages
-            .filter((m) => m.role === "user")
-            .map((m) => m.content),
-        ];
-
+        const userTexts = activeConversation.messages
+          .filter((m) => m.role === "user")
+          .map((m) => m.content);
         const intent = tryExtractIntent(userTexts);
         if (intent) {
           const { nodes, edges } = generateFlowFromIntent(intent);
@@ -119,7 +104,7 @@ export default function CoreEnginePage() {
         }
       }
 
-      // Generate title from first user message
+      // Title from first user message
       if (activeConversation && activeConversation.messages.length <= 2) {
         const firstUserMsg = activeConversation.messages.find(
           (m) => m.role === "user"
@@ -136,7 +121,7 @@ export default function CoreEnginePage() {
     [activeId, activeConversation, addMessage, setTitle]
   );
 
-  const { liveState, sendMessage, abort } = useClaudeStream({
+  const { liveState, sendMessage } = useClaudeStream({
     onLogEntry: handleLogEntry,
     onSessionId: handleSessionId,
     onToolResult: handleToolResult,
@@ -147,31 +132,20 @@ export default function CoreEnginePage() {
     (message: string) => {
       let convId = activeId;
 
-      // Create conversation if none active
       if (!convId) {
         convId = createConversation();
       }
 
-      // Transition to active state on first message
       if (engineState === "idle") {
         setEngineState("active");
       }
 
-      // Add user message
       addMessage(convId, { role: "user", content: message });
 
-      // Get session ID for continuation
       const conv = conversations.find((c) => c.id === convId);
       sendMessage(message, conv?.claudeSessionId);
     },
-    [
-      activeId,
-      engineState,
-      conversations,
-      createConversation,
-      addMessage,
-      sendMessage,
-    ]
+    [activeId, engineState, conversations, createConversation, addMessage, sendMessage]
   );
 
   const handleNewChat = useCallback(() => {
@@ -188,7 +162,6 @@ export default function CoreEnginePage() {
       const conv = conversations.find((c) => c.id === id);
       if (conv && conv.messages.length > 0) {
         setEngineState("active");
-        // Re-extract flow from existing conversation
         const userTexts = conv.messages
           .filter((m) => m.role === "user")
           .map((m) => m.content);
@@ -233,7 +206,6 @@ export default function CoreEnginePage() {
             Powered by LI.FI Composer
           </p>
 
-          {/* Previous conversations */}
           {conversations.length > 0 && (
             <div className="mt-8 w-full max-w-md">
               <p className="text-xs text-muted-foreground mb-2">Recent chats</p>
@@ -258,101 +230,69 @@ export default function CoreEnginePage() {
     );
   }
 
-  // ---- ACTIVE STATE ----
+  // ---- ACTIVE STATE: 50/50 split ----
   return (
-    <div className="flex-1 flex transition-all duration-500">
-      {/* Left 3/4: Chat or Flow */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Conversation tabs */}
-        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card/30 overflow-x-auto shrink-0">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => handleSelectConversation(conv.id)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSelectConversation(conv.id); }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors cursor-pointer ${
-                activeId === conv.id
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-              }`}
+    <div className="flex-1 flex flex-col">
+      {/* Conversation tabs */}
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card/30 overflow-x-auto shrink-0">
+        {conversations.map((conv) => (
+          <div
+            key={conv.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => handleSelectConversation(conv.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSelectConversation(conv.id);
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors cursor-pointer ${
+              activeId === conv.id
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <span className="truncate max-w-[120px]">{conv.title}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteConversation(conv.id);
+              }}
+              className="text-muted-foreground hover:text-red-400 ml-1"
             >
-              <span className="truncate max-w-[120px]">{conv.title}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteConversation(conv.id);
-                }}
-                className="text-muted-foreground hover:text-red-400 ml-1"
-              >
-                x
-              </button>
-            </div>
-          ))}
-          <button
-            onClick={handleNewChat}
-            className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-accent/50 whitespace-nowrap"
-          >
-            + New
-          </button>
-        </div>
-
-        {/* Main content area - transitions between chat and flow */}
-        <div className="flex-1 min-h-0 relative">
-          {/* Chat view: visible when no flow chart yet */}
-          <div
-            className={`absolute inset-0 flex flex-col transition-all duration-500 ${
-              flowReady
-                ? "opacity-0 pointer-events-none scale-95"
-                : "opacity-100 scale-100"
-            }`}
-          >
-            <MessageList
-              messages={activeConversation?.messages || []}
-              liveState={liveState}
-            />
+              x
+            </button>
           </div>
-
-          {/* Flow view: visible once trade intent is resolved */}
-          <div
-            className={`absolute inset-0 transition-all duration-500 ${
-              flowReady
-                ? "opacity-100 scale-100"
-                : "opacity-0 pointer-events-none scale-105"
-            }`}
-          >
-            <FlowCanvas
-              nodes={flowNodes}
-              edges={flowEdges}
-              onNodesChange={setFlowNodes}
-              onEdgesChange={setFlowEdges}
-              onNodeClick={() => {}}
-              executionState={executionState}
-            />
-          </div>
-        </div>
-
-        {/* Chat input - always visible at bottom */}
-        <div className="p-3 border-t border-border shrink-0">
-          <ChatInput
-            onSend={handleSend}
-            isLoading={liveState.isStreaming}
-            placeholder={
-              flowReady
-                ? "Refine your trade or start a new one..."
-                : "Describe your trade..."
-            }
-          />
-        </div>
+        ))}
+        <button
+          onClick={handleNewChat}
+          className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-accent/50 whitespace-nowrap"
+        >
+          + New
+        </button>
       </div>
 
-      {/* Right 1/4: AI Logs Panel */}
-      <div className="w-1/4 min-w-[280px] max-w-[400px] transition-all duration-500">
-        <AiLogsPanel
-          logEntries={activeConversation?.logEntries || []}
-          liveState={liveState}
-        />
+      {/* Main area: FlowCanvas (left) | Chat (right) */}
+      <div className="flex-1 flex min-h-0">
+        {/* Left half: Flow Canvas */}
+        <div className="w-1/2 min-w-0">
+          <FlowCanvas
+            nodes={flowNodes}
+            edges={flowEdges}
+            onNodesChange={setFlowNodes}
+            onEdgesChange={setFlowEdges}
+            onNodeClick={() => {}}
+            executionState={executionState}
+          />
+        </div>
+
+        {/* Right half: Chat */}
+        <div className="w-1/2 min-w-0">
+          <ChatPanel
+            messages={activeConversation?.messages || []}
+            logEntries={activeConversation?.logEntries || []}
+            liveState={liveState}
+            onSend={handleSend}
+          />
+        </div>
       </div>
     </div>
   );

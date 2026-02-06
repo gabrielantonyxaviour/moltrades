@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -56,17 +56,17 @@ export function FlowCanvas({
   const [flowEdges, setEdges, onEdgesChangeInternal] = useEdgesState(edges);
 
   // Sync external nodes/edges with internal state
-  useMemo(() => {
+  useEffect(() => {
     if (JSON.stringify(nodes) !== JSON.stringify(flowNodes)) {
       setNodes(nodes);
     }
-  }, [nodes]);
+  }, [nodes, setNodes]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (JSON.stringify(edges) !== JSON.stringify(flowEdges)) {
       setEdges(edges);
     }
-  }, [edges]);
+  }, [edges, setEdges]);
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {

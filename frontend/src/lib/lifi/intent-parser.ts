@@ -1,14 +1,26 @@
-// Intent parser - converts natural language to flow steps
-import { FlowStep, ParsedIntent, RouteInfo } from "./types";
-import { Node, Edge } from "@xyflow/react";
+/**
+ * Intent Parser - Enhanced
+ *
+ * Converts natural language to structured intents with real protocol mapping.
+ */
 
-// Simple regex patterns for parsing intents
+import type { ParsedIntent } from "./types";
+
+// =============================================================================
+// PATTERNS
+// =============================================================================
+
 const BRIDGE_PATTERN = /bridge\s+(\d+(?:\.\d+)?)\s+(\w+)\s+(?:from\s+)?(\w+)\s+to\s+(\w+)/i;
 const SWAP_PATTERN = /swap\s+(\d+(?:\.\d+)?)\s+(\w+)\s+(?:for|to)\s+(\w+)(?:\s+on\s+(\w+))?/i;
-const DEPOSIT_PATTERN = /deposit\s+(\d+(?:\.\d+)?)\s+(\w+)\s+(?:into|on|to)\s+(\w+)/i;
-const COMPLEX_PATTERN = /bridge.*(?:and|then)\s+(?:swap|deposit)/i;
+const DEPOSIT_PATTERN = /deposit\s+(\d+(?:\.\d+)?)\s+(\w+)\s+(?:into|on|to)\s+(\w+)(?:\s+on\s+(\w+))?/i;
+const COMPLEX_BRIDGE_DEPOSIT = /bridge\s+(\d+(?:\.\d+)?)\s+(\w+)\s+(?:from\s+)?(\w+)?\s*(?:to\s+)?(\w+)?\s*(?:and|then)\s+(?:deposit\s+)?(?:into\s+)?(\w+)/i;
+const SUPPLY_PATTERN = /supply\s+(\d+(?:\.\d+)?)\s+(\w+)\s+(?:to|on|into)\s+(\w+)(?:\s+on\s+(\w+))?/i;
+const STAKE_PATTERN = /stake\s+(\d+(?:\.\d+)?)\s+(\w+)(?:\s+(?:on|in|into)\s+(\w+))?/i;
 
-// Chain name normalization
+// =============================================================================
+// ALIASES
+// =============================================================================
+
 const CHAIN_ALIASES: Record<string, string> = {
   eth: "Ethereum",
   ethereum: "Ethereum",
@@ -26,9 +38,11 @@ const CHAIN_ALIASES: Record<string, string> = {
   bsc: "BNB Chain",
   bnb: "BNB Chain",
   binance: "BNB Chain",
+  scroll: "Scroll",
+  linea: "Linea",
+  gnosis: "Gnosis",
 };
 
-// Token name normalization
 const TOKEN_ALIASES: Record<string, string> = {
   eth: "ETH",
   ether: "ETH",
@@ -43,21 +57,30 @@ const TOKEN_ALIASES: Record<string, string> = {
   matic: "MATIC",
   arb: "ARB",
   op: "OP",
+  steth: "stETH",
+  wsteth: "wstETH",
 };
 
-// Protocol name normalization
 const PROTOCOL_ALIASES: Record<string, string> = {
   aave: "Aave",
   compound: "Compound",
+  morpho: "Morpho",
+  moonwell: "Moonwell",
+  seamless: "Seamless",
+  lido: "Lido",
+  ethena: "Ethena",
   uniswap: "Uniswap",
   sushiswap: "SushiSwap",
   sushi: "SushiSwap",
   curve: "Curve",
   balancer: "Balancer",
   yearn: "Yearn",
-  lido: "Lido",
   stargate: "Stargate",
 };
+
+// =============================================================================
+// NORMALIZERS
+// =============================================================================
 
 function normalizeChain(chain: string): string {
   return CHAIN_ALIASES[chain.toLowerCase()] || chain;
@@ -71,18 +94,42 @@ function normalizeProtocol(protocol: string): string {
   return PROTOCOL_ALIASES[protocol.toLowerCase()] || protocol;
 }
 
+// =============================================================================
+// MAIN PARSER
+// =============================================================================
+
 export function parseIntent(input: string): ParsedIntent {
   const normalizedInput = input.toLowerCase().trim();
 
-  // Check for complex multi-step intent
-  if (COMPLEX_PATTERN.test(normalizedInput)) {
+  // Check for complex bridge + deposit pattern
+  const complexMatch = input.match(COMPLEX_BRIDGE_DEPOSIT);
+  if (complexMatch) {
     return {
       action: "complex",
+      amount: complexMatch[1],
+      fromToken: normalizeToken(complexMatch[2]),
+      fromChain: complexMatch[3] ? normalizeChain(complexMatch[3]) : "Ethereum",
+      toChain: complexMatch[4] ? normalizeChain(complexMatch[4]) : "Base",
+      protocol: normalizeProtocol(complexMatch[5]),
       description: input,
     };
   }
 
-  // Try to match bridge pattern
+  // Try deposit/supply pattern
+  const depositMatch = input.match(DEPOSIT_PATTERN) || input.match(SUPPLY_PATTERN);
+  if (depositMatch) {
+    return {
+      action: "deposit",
+      amount: depositMatch[1],
+      fromToken: normalizeToken(depositMatch[2]),
+      protocol: normalizeProtocol(depositMatch[3]),
+      toChain: depositMatch[4] ? normalizeChain(depositMatch[4]) : undefined,
+      fromChain: depositMatch[4] ? normalizeChain(depositMatch[4]) : "Base",
+      description: input,
+    };
+  }
+
+  // Try bridge pattern
   const bridgeMatch = input.match(BRIDGE_PATTERN);
   if (bridgeMatch) {
     return {
@@ -95,7 +142,7 @@ export function parseIntent(input: string): ParsedIntent {
     };
   }
 
-  // Try to match swap pattern
+  // Try swap pattern
   const swapMatch = input.match(SWAP_PATTERN);
   if (swapMatch) {
     return {
@@ -108,405 +155,177 @@ export function parseIntent(input: string): ParsedIntent {
     };
   }
 
-  // Try to match deposit pattern
-  const depositMatch = input.match(DEPOSIT_PATTERN);
-  if (depositMatch) {
+  // Try stake pattern
+  const stakeMatch = input.match(STAKE_PATTERN);
+  if (stakeMatch) {
     return {
       action: "deposit",
-      amount: depositMatch[1],
-      fromToken: normalizeToken(depositMatch[2]),
-      protocol: normalizeProtocol(depositMatch[3]),
+      amount: stakeMatch[1],
+      fromToken: normalizeToken(stakeMatch[2]),
+      protocol: stakeMatch[3] ? normalizeProtocol(stakeMatch[3]) : "Lido",
+      fromChain: "Ethereum",
       description: input,
     };
   }
 
-  // Fallback - try to extract any tokens/chains mentioned
+  // Fallback - try to extract intent from keywords
+  return extractIntentFromKeywords(normalizedInput, input);
+}
+
+// =============================================================================
+// KEYWORD EXTRACTION
+// =============================================================================
+
+function extractIntentFromKeywords(normalizedInput: string, originalInput: string): ParsedIntent {
+  // Check for action keywords
+  const hasBridge = /bridge/i.test(normalizedInput);
+  const hasSwap = /swap|exchange|trade/i.test(normalizedInput);
+  const hasDeposit = /deposit|supply|stake|lend/i.test(normalizedInput);
+  const hasAnd = /and|then/i.test(normalizedInput);
+
+  // Extract amount
+  const amountMatch = normalizedInput.match(/(\d+(?:\.\d+)?)/);
+  const amount = amountMatch ? amountMatch[1] : undefined;
+
+  // Extract tokens
+  const tokens: string[] = [];
+  for (const [alias] of Object.entries(TOKEN_ALIASES)) {
+    if (normalizedInput.includes(alias)) {
+      tokens.push(normalizeToken(alias));
+    }
+  }
+
+  // Extract chains
+  const chains: string[] = [];
+  for (const [alias] of Object.entries(CHAIN_ALIASES)) {
+    if (normalizedInput.includes(alias)) {
+      chains.push(normalizeChain(alias));
+    }
+  }
+
+  // Extract protocols
+  let protocol: string | undefined;
+  for (const [alias, name] of Object.entries(PROTOCOL_ALIASES)) {
+    if (normalizedInput.includes(alias)) {
+      protocol = name;
+      break;
+    }
+  }
+
+  // Determine action
+  if (hasBridge && hasDeposit && hasAnd) {
+    return {
+      action: "complex",
+      amount,
+      fromToken: tokens[0],
+      fromChain: chains[0] || "Ethereum",
+      toChain: chains[1] || "Base",
+      protocol: protocol || "Aave",
+      description: originalInput,
+    };
+  }
+
+  if (hasDeposit) {
+    return {
+      action: "deposit",
+      amount,
+      fromToken: tokens[0] || "ETH",
+      protocol: protocol || "Aave",
+      fromChain: chains[0] || "Base",
+      toChain: chains[0] || "Base",
+      description: originalInput,
+    };
+  }
+
+  if (hasSwap) {
+    return {
+      action: "swap",
+      amount,
+      fromToken: tokens[0] || "ETH",
+      toToken: tokens[1] || "USDC",
+      fromChain: chains[0] || "Ethereum",
+      description: originalInput,
+    };
+  }
+
+  if (hasBridge) {
+    return {
+      action: "bridge",
+      amount,
+      fromToken: tokens[0] || "ETH",
+      fromChain: chains[0] || "Ethereum",
+      toChain: chains[1] || "Base",
+      description: originalInput,
+    };
+  }
+
+  // Default to complex
   return {
     action: "complex",
-    description: input,
+    amount,
+    fromToken: tokens[0] || "ETH",
+    fromChain: chains[0] || "Ethereum",
+    toChain: chains[1] || chains[0] || "Base",
+    protocol,
+    description: originalInput,
   };
 }
 
-export function generateFlowFromIntent(intent: ParsedIntent): {
-  nodes: Node[];
-  edges: Edge[];
-  route: RouteInfo;
-} {
-  const nodes: Node[] = [];
-  const edges: Edge[] = [];
-  let yPosition = 0;
-  const xPosition = 250;
-  const yGap = 150;
+// =============================================================================
+// VALIDATION
+// =============================================================================
+
+export function isValidIntent(intent: ParsedIntent): boolean {
+  if (!intent.amount || parseFloat(intent.amount) <= 0) {
+    return false;
+  }
+
+  if (!intent.fromToken) {
+    return false;
+  }
 
   switch (intent.action) {
-    case "bridge": {
-      // Input node
-      const inputId = "input-1";
-      nodes.push({
-        id: inputId,
-        type: "tokenInput",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Starting Balance",
-          token: intent.fromToken || "ETH",
-          amount: intent.amount || "0",
-          usdValue: calculateUsdValue(intent.fromToken || "ETH", intent.amount || "0"),
-          chain: intent.fromChain || "Ethereum",
-        },
-      });
-
-      // Bridge node
-      yPosition += yGap;
-      const bridgeId = "bridge-1";
-      nodes.push({
-        id: bridgeId,
-        type: "bridge",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: `Bridge to ${intent.toChain}`,
-          fromChain: intent.fromChain || "Ethereum",
-          toChain: intent.toChain || "Base",
-          provider: "LI.FI",
-          estimatedTime: "2-5 min",
-          fee: "~$2.50",
-          status: "idle",
-        },
-      });
-      edges.push({ id: `e-${inputId}-${bridgeId}`, source: inputId, target: bridgeId, animated: true });
-
-      // Output node
-      yPosition += yGap;
-      const outputId = "output-1";
-      nodes.push({
-        id: outputId,
-        type: "output",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Final Balance",
-          token: intent.fromToken || "ETH",
-          amount: intent.amount || "0",
-          usdValue: calculateUsdValue(intent.fromToken || "ETH", intent.amount || "0"),
-          chain: intent.toChain || "Base",
-        },
-      });
-      edges.push({ id: `e-${bridgeId}-${outputId}`, source: bridgeId, target: outputId, animated: true });
-
-      return {
-        nodes,
-        edges,
-        route: {
-          totalSteps: 1,
-          estimatedTime: "2-5 min",
-          estimatedGas: "~$2.50",
-          estimatedOutput: `${intent.amount || "0"} ${intent.fromToken || "ETH"}`,
-        },
-      };
-    }
-
-    case "swap": {
-      // Input node
-      const inputId = "input-1";
-      nodes.push({
-        id: inputId,
-        type: "tokenInput",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Starting Balance",
-          token: intent.fromToken || "ETH",
-          amount: intent.amount || "0",
-          usdValue: calculateUsdValue(intent.fromToken || "ETH", intent.amount || "0"),
-          chain: intent.fromChain || "Ethereum",
-        },
-      });
-
-      // Swap node
-      yPosition += yGap;
-      const swapId = "swap-1";
-      const toAmount = calculateSwapOutput(intent.fromToken || "ETH", intent.toToken || "USDC", intent.amount || "0");
-      nodes.push({
-        id: swapId,
-        type: "swap",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: `${intent.fromToken} → ${intent.toToken}`,
-          fromToken: intent.fromToken || "ETH",
-          toToken: intent.toToken || "USDC",
-          fromAmount: intent.amount || "0",
-          toAmount,
-          dex: "Uniswap",
-          rate: `1 ${intent.fromToken || "ETH"} = ${getMockRate(intent.fromToken || "ETH", intent.toToken || "USDC")} ${intent.toToken || "USDC"}`,
-          priceImpact: "< 0.1%",
-          status: "idle",
-        },
-      });
-      edges.push({ id: `e-${inputId}-${swapId}`, source: inputId, target: swapId, animated: true });
-
-      // Output node
-      yPosition += yGap;
-      const outputId = "output-1";
-      nodes.push({
-        id: outputId,
-        type: "output",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Final Balance",
-          token: intent.toToken || "USDC",
-          amount: toAmount,
-          usdValue: toAmount,
-          chain: intent.fromChain || "Ethereum",
-        },
-      });
-      edges.push({ id: `e-${swapId}-${outputId}`, source: swapId, target: outputId, animated: true });
-
-      return {
-        nodes,
-        edges,
-        route: {
-          totalSteps: 1,
-          estimatedTime: "< 1 min",
-          estimatedGas: "~$5.00",
-          estimatedOutput: `${toAmount} ${intent.toToken || "USDC"}`,
-        },
-      };
-    }
-
-    case "deposit": {
-      // Input node
-      const inputId = "input-1";
-      nodes.push({
-        id: inputId,
-        type: "tokenInput",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Starting Balance",
-          token: intent.fromToken || "ETH",
-          amount: intent.amount || "0",
-          usdValue: calculateUsdValue(intent.fromToken || "ETH", intent.amount || "0"),
-          chain: "Ethereum",
-        },
-      });
-
-      // Deposit node
-      yPosition += yGap;
-      const depositId = "deposit-1";
-      const receiveToken = getReceiveToken(intent.protocol || "Aave", intent.fromToken || "ETH");
-      nodes.push({
-        id: depositId,
-        type: "deposit",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: `Deposit to ${intent.protocol}`,
-          protocol: intent.protocol || "Aave",
-          token: intent.fromToken || "ETH",
-          amount: intent.amount || "0",
-          apy: getMockApy(intent.protocol || "Aave"),
-          receiveToken,
-          status: "idle",
-        },
-      });
-      edges.push({ id: `e-${inputId}-${depositId}`, source: inputId, target: depositId, animated: true });
-
-      // Output node
-      yPosition += yGap;
-      const outputId = "output-1";
-      nodes.push({
-        id: outputId,
-        type: "output",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Position",
-          token: receiveToken,
-          amount: intent.amount || "0",
-          usdValue: calculateUsdValue(intent.fromToken || "ETH", intent.amount || "0"),
-          chain: "Ethereum",
-        },
-      });
-      edges.push({ id: `e-${depositId}-${outputId}`, source: depositId, target: outputId, animated: true });
-
-      return {
-        nodes,
-        edges,
-        route: {
-          totalSteps: 1,
-          estimatedTime: "< 1 min",
-          estimatedGas: "~$8.00",
-          estimatedOutput: `${intent.amount || "0"} ${receiveToken}`,
-        },
-      };
-    }
-
+    case "bridge":
+      return !!intent.fromChain && !!intent.toChain;
+    case "swap":
+      return !!intent.toToken;
+    case "deposit":
+      return !!intent.protocol;
     case "complex":
-    default: {
-      // For complex intents, create a sample multi-step flow
-      // Input node
-      const inputId = "input-1";
-      nodes.push({
-        id: inputId,
-        type: "tokenInput",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Starting Balance",
-          token: "ETH",
-          amount: "1",
-          usdValue: "2,500",
-          chain: "Ethereum",
-        },
-      });
-
-      // Bridge node
-      yPosition += yGap;
-      const bridgeId = "bridge-1";
-      nodes.push({
-        id: bridgeId,
-        type: "bridge",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Bridge to Base",
-          fromChain: "Ethereum",
-          toChain: "Base",
-          provider: "LI.FI",
-          estimatedTime: "2-5 min",
-          fee: "~$2.50",
-          status: "idle",
-        },
-      });
-      edges.push({ id: `e-${inputId}-${bridgeId}`, source: inputId, target: bridgeId, animated: true });
-
-      // Swap node
-      yPosition += yGap;
-      const swapId = "swap-1";
-      nodes.push({
-        id: swapId,
-        type: "swap",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "ETH → USDC",
-          fromToken: "ETH",
-          toToken: "USDC",
-          fromAmount: "1",
-          toAmount: "2,500",
-          dex: "Uniswap",
-          rate: "1 ETH = 2,500 USDC",
-          priceImpact: "< 0.1%",
-          status: "idle",
-        },
-      });
-      edges.push({ id: `e-${bridgeId}-${swapId}`, source: bridgeId, target: swapId, animated: true });
-
-      // Deposit node
-      yPosition += yGap;
-      const depositId = "deposit-1";
-      nodes.push({
-        id: depositId,
-        type: "deposit",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Deposit to Aave",
-          protocol: "Aave",
-          token: "USDC",
-          amount: "2,500",
-          apy: "4.5%",
-          receiveToken: "aUSDC",
-          status: "idle",
-        },
-      });
-      edges.push({ id: `e-${swapId}-${depositId}`, source: swapId, target: depositId, animated: true });
-
-      // Output node
-      yPosition += yGap;
-      const outputId = "output-1";
-      nodes.push({
-        id: outputId,
-        type: "output",
-        position: { x: xPosition, y: yPosition },
-        data: {
-          label: "Final Position",
-          token: "aUSDC",
-          amount: "2,500",
-          usdValue: "2,500",
-          chain: "Base",
-        },
-      });
-      edges.push({ id: `e-${depositId}-${outputId}`, source: depositId, target: outputId, animated: true });
-
-      return {
-        nodes,
-        edges,
-        route: {
-          totalSteps: 3,
-          estimatedTime: "5-8 min",
-          estimatedGas: "~$15.00",
-          estimatedOutput: "2,500 aUSDC",
-        },
-      };
-    }
+      return true;
+    default:
+      return false;
   }
 }
 
-// Mock helper functions for demo purposes
-function calculateUsdValue(token: string, amount: string): string {
-  const prices: Record<string, number> = {
-    ETH: 2500,
-    WETH: 2500,
-    USDC: 1,
-    USDT: 1,
-    DAI: 1,
-    WBTC: 45000,
-    MATIC: 0.8,
-    ARB: 1.2,
-    OP: 2.5,
-  };
-  const price = prices[token] || 1;
-  const value = parseFloat(amount) * price;
-  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+export function getIntentSummary(intent: ParsedIntent): string {
+  switch (intent.action) {
+    case "bridge":
+      return `Bridge ${intent.amount} ${intent.fromToken} from ${intent.fromChain} to ${intent.toChain}`;
+    case "swap":
+      return `Swap ${intent.amount} ${intent.fromToken} for ${intent.toToken} on ${intent.fromChain}`;
+    case "deposit":
+      return `Deposit ${intent.amount} ${intent.fromToken} into ${intent.protocol}`;
+    case "complex":
+      if (intent.protocol) {
+        return `Bridge ${intent.amount} ${intent.fromToken} to ${intent.toChain} and deposit into ${intent.protocol}`;
+      }
+      return `Complex operation: ${intent.description}`;
+    default:
+      return intent.description;
+  }
 }
 
-function calculateSwapOutput(fromToken: string, toToken: string, amount: string): string {
-  const rate = getMockRateNumber(fromToken, toToken);
-  const output = parseFloat(amount) * rate;
-  return output.toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
+// =============================================================================
+// SUGGESTIONS
+// =============================================================================
 
-function getMockRate(fromToken: string, toToken: string): string {
-  const rate = getMockRateNumber(fromToken, toToken);
-  return rate.toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
-
-function getMockRateNumber(fromToken: string, toToken: string): number {
-  const prices: Record<string, number> = {
-    ETH: 2500,
-    WETH: 2500,
-    USDC: 1,
-    USDT: 1,
-    DAI: 1,
-    WBTC: 45000,
-    MATIC: 0.8,
-    ARB: 1.2,
-    OP: 2.5,
-  };
-  const fromPrice = prices[fromToken] || 1;
-  const toPrice = prices[toToken] || 1;
-  return fromPrice / toPrice;
-}
-
-function getMockApy(protocol: string): string {
-  const apys: Record<string, string> = {
-    Aave: "4.5%",
-    Compound: "3.8%",
-    Yearn: "6.2%",
-    Lido: "5.1%",
-    Curve: "7.3%",
-  };
-  return apys[protocol] || "4.0%";
-}
-
-function getReceiveToken(protocol: string, token: string): string {
-  const prefixes: Record<string, string> = {
-    Aave: "a",
-    Compound: "c",
-    Yearn: "yv",
-    Lido: "st",
-  };
-  const prefix = prefixes[protocol] || "";
-  return `${prefix}${token}`;
+export function getSuggestions(): string[] {
+  return [
+    "Bridge 0.1 ETH from Ethereum to Base",
+    "Swap 100 USDC to ETH on Arbitrum",
+    "Deposit 0.1 ETH into Aave on Base",
+    "Bridge 0.5 ETH to Base and deposit into Morpho",
+    "Supply 50 USDC to Moonwell on Base",
+  ];
 }

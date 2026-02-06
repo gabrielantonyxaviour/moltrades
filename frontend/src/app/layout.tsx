@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Orbitron, Space_Grotesk, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/providers/theme-provider"
+import { Web3Provider } from "@/components/providers/wagmi-provider"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
@@ -43,7 +44,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <Web3Provider>
+            {children}
+          </Web3Provider>
           <Toaster />
         </ThemeProvider>
       </body>

@@ -6,9 +6,9 @@ import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { useWallets as useSolanaWallets } from "@privy-io/react-auth/solana"
 import { useCreateWallet } from "@privy-io/react-auth/extended-chains"
 import { useSetActiveWallet } from "@privy-io/wagmi"
+import Image from "next/image"
 import { Copy, Check, LogOut, Wallet, ChevronDown, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,13 @@ const CHAIN_LABELS: Record<string, string> = {
   solana: "Solana",
   sui: "SUI",
   "bitcoin-segwit": "BTC",
+}
+
+const CHAIN_ICONS: Record<string, string> = {
+  EVM: "/chains/ethereum.png",
+  Solana: "/chains/solana.png",
+  SUI: "/chains/sui.png",
+  BTC: "/chains/bitcoin.png",
 }
 
 interface WalletEntry {
@@ -161,12 +168,18 @@ export function WalletDropdown() {
                     }
                   >
                     <div className="flex items-center gap-2">
+                      {CHAIN_ICONS[wallet.chain] && (
+                        <Image
+                          src={CHAIN_ICONS[wallet.chain]}
+                          alt={wallet.chain}
+                          width={20}
+                          height={20}
+                          className="h-5 w-5 rounded-full"
+                        />
+                      )}
                       <span className="font-mono text-sm">
                         {truncateAddress(wallet.address)}
                       </span>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        {wallet.chain}
-                      </Badge>
                     </div>
                     <button
                       className="ml-2 rounded p-1 hover:bg-accent"
@@ -217,12 +230,18 @@ export function WalletDropdown() {
                     }
                   >
                     <div className="flex items-center gap-2">
+                      {CHAIN_ICONS[wallet.chain] && (
+                        <Image
+                          src={CHAIN_ICONS[wallet.chain]}
+                          alt={wallet.chain}
+                          width={20}
+                          height={20}
+                          className="h-5 w-5 rounded-full"
+                        />
+                      )}
                       <span className="font-mono text-sm">
                         {truncateAddress(wallet.address)}
                       </span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        {wallet.chain}
-                      </Badge>
                     </div>
                     <button
                       className="ml-2 rounded p-1 hover:bg-accent"

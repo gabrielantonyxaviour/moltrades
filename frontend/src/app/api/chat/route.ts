@@ -4,6 +4,12 @@ const CLAUDE_SERVICE_URL =
   process.env.CLAUDE_SERVICE_URL ||
   "https://innominate-unalleviatingly-yasmin.ngrok-free.dev";
 
+// Working directory for Claude CLI — must point to the moltrades project root
+// so it picks up .mcp.json with the lifi-composer MCP server
+const WORKING_DIRECTORY =
+  process.env.MOLTRADES_PROJECT_DIR ||
+  "/Users/gabrielantonyxaviour/Documents/workspaces/ethglobal/projects/moltrades";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -19,6 +25,7 @@ export async function POST(req: NextRequest) {
         ...(body.sessionId && { sessionId: body.sessionId }),
         model: body.model || "sonnet",
         maxTurns: body.maxTurns || 25,
+        workingDirectory: WORKING_DIRECTORY,
       }),
     });
 

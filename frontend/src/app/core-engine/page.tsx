@@ -27,10 +27,16 @@ export default function CoreEnginePage() {
       <Image
         src="/moltrades-logo.png"
         alt="Moltrades"
-        width={80}
-        height={80}
-        className="mb-6"
+        width={120}
+        height={120}
+        className="mb-4"
       />
+      <h1 className="font-heading text-2xl font-bold tracking-wider mb-1">
+        Moltrades Core Engine
+      </h1>
+      <p className="text-muted-foreground text-sm mb-6 italic">
+        Imagine DeFi
+      </p>
 
       <div className="w-full rounded-xl border border-border bg-background shadow-sm focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px] transition-all">
         <textarea
@@ -69,6 +75,9 @@ export default function CoreEnginePage() {
           </Button>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground mt-2">
+        Powered by LI.FI Composer
+      </p>
     </div>
   );
 }

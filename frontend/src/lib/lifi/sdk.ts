@@ -23,6 +23,7 @@ export const CHAIN_IDS = {
   AVALANCHE: 43114,
   LINEA: 59144,
   SCROLL: 534352,
+  SUI: 9270000000000000,
 } as const;
 
 export const CHAIN_NAMES: Record<number, string> = {
@@ -37,6 +38,7 @@ export const CHAIN_NAMES: Record<number, string> = {
   43114: "Avalanche",
   59144: "Linea",
   534352: "Scroll",
+  9270000000000000: "SUI",
 };
 
 // =============================================================================

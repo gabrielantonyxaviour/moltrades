@@ -33,6 +33,7 @@ const CHAIN_NAME_TO_ID: Record<string, ChainId> = {
   avax: CHAIN_IDS.AVALANCHE,
   linea: CHAIN_IDS.LINEA,
   scroll: CHAIN_IDS.SCROLL,
+  sui: CHAIN_IDS.SUI,
 };
 
 export function getChainId(chainName: string): ChainId | undefined {
@@ -345,6 +346,7 @@ function getTokenDecimals(symbol: string): number {
     MATIC: 18,
     BNB: 18,
     AVAX: 18,
+    SUI: 9,
   };
   return decimalsMap[symbol.toUpperCase()] || 18;
 }

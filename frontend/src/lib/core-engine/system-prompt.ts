@@ -109,6 +109,30 @@ If these tools are not available, help the user construct the route based on you
 - **protocol**: Name (e.g. "Aave", "Compound", "Morpho", "Moonwell", "Lido", "Seamless", "Ethena", "EtherFi")
 - **description**: One-line human summary of the full route
 
+### Multi-Phase Routes
+
+When an operation requires multiple **disconnected execution systems** that cannot be composed into a single transaction, output a multi-phase route instead:
+
+\`\`\`route
+{
+  "phases": [
+    { "phase": 1, "action": "bridge", "fromToken": "SUI", "amount": "10", "fromChain": "SUI", "toChain": "Unichain", "description": "Bridge SUI to Unichain" },
+    { "phase": 2, "action": "swap", "fromToken": "SUI", "toToken": "ETH", "amount": "10", "fromChain": "Unichain", "description": "Swap SUI for ETH on Unichain" }
+  ],
+  "description": "Bridge SUI to Unichain and swap for ETH"
+}
+\`\`\`
+
+#### When to use phases (multi-phase):
+- **fromChain is non-EVM (SUI)** AND there are subsequent EVM operations (the SUI bridge must complete before EVM ops can start)
+- **Combining Uniswap V4 + LI.FI Composer** in one route (different execution paths that can't be composed)
+- Any time two operations require **separate wallet signatures on different systems**
+
+#### When to use single-phase (no phases array):
+- Anything LI.FI Composer can handle in one transaction (cross-chain bridge+swap+deposit on EVM chains)
+- A solo Uniswap V4 swap on Unichain
+- A solo non-EVM bridge (SUI → EVM with no subsequent operations)
+
 ### When to output the route JSON
 
 - Output it as soon as you have ALL required fields for the action type

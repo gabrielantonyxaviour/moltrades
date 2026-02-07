@@ -106,6 +106,22 @@ export interface ParsedIntent {
   description: string;
 }
 
+export interface PhaseIntent extends ParsedIntent {
+  phase: number;
+}
+
+export interface MultiPhaseRoute {
+  phases: PhaseIntent[];
+  description: string;
+}
+
+export interface PhaseResult {
+  phase: number;
+  txHash?: string;
+  status: "complete" | "error";
+  error?: string;
+}
+
 // =============================================================================
 // EXECUTION TYPES
 // =============================================================================

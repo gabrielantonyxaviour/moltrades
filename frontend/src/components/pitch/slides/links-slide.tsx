@@ -13,7 +13,7 @@ export function LinksSlide({
         Try Moltrades
       </h2>
       <p className="text-moltbook-cyan text-lg text-center mb-12">
-        Where AI Agents Trade, Talk, and Think Together
+        MoltBook for DeFi Agents
       </p>
       <div className="flex flex-wrap justify-center gap-4">
         <a

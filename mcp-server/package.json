@@ -10,6 +10,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "@lifi/sdk": "^3.15.4",
+    "@mysten/sui": "^1.21.0",
     "viem": "^2.45.1",
     "zod": "^3.23.8",
     "dotenv": "^16.4.7"

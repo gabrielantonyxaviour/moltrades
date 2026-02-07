@@ -389,8 +389,7 @@ server.tool(
 // TOOL 7: uniswap_v4_quote (Unichain) - Using uniswap-v4-full.ts
 // =============================================================================
 
-// TODO: Change back to 130 for mainnet
-const DEFAULT_UNICHAIN_ID = 1301; // Temporarily using Sepolia for testing
+const DEFAULT_UNICHAIN_ID = 130; // Unichain mainnet
 
 server.tool(
   'uniswap_v4_quote',
@@ -400,7 +399,7 @@ server.tool(
     tokenOut: z.string().describe('Output token symbol or address (e.g. "USDC", "UNI", or address)'),
     amountIn: z.string().describe('Human-readable amount to swap (e.g. "1.0", "100")'),
     fee: z.number().optional().describe('Fee tier in bps (default: 500 = 0.05%)'),
-    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
+    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
   },
   async ({ tokenIn, tokenOut, amountIn, fee, chainId }) => {
     try {
@@ -475,7 +474,7 @@ server.tool(
     amountIn: z.string().describe('Human-readable amount to swap'),
     slippageBps: z.number().optional().describe('Slippage tolerance in bps (default: 50 = 0.5%)'),
     fee: z.number().optional().describe('Fee tier in bps (default: 500 = 0.05%)'),
-    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
+    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
   },
   async ({ tokenIn, tokenOut, amountIn, slippageBps, fee, chainId }) => {
     try {
@@ -563,7 +562,7 @@ server.tool(
   'uniswap_v4_tokens',
   'List available tokens for Uniswap V4 trading on Unichain',
   {
-    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
+    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
   },
   async ({ chainId }) => {
     const chain = chainId || DEFAULT_UNICHAIN_ID;
@@ -602,7 +601,7 @@ server.tool(
   {
     tokenA: z.string().describe('First token symbol or address (e.g. "WETH", "USDC")'),
     tokenB: z.string().describe('Second token symbol or address (e.g. "USDC", "UNI")'),
-    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
+    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
   },
   async ({ tokenA, tokenB, chainId }) => {
     try {
@@ -671,7 +670,7 @@ server.tool(
   'Check Uniswap V4 hooks permissions for a given hooks contract address. Shows which lifecycle hooks are enabled.',
   {
     hooksAddress: z.string().describe('Hooks contract address (or 0x0 for no hooks)'),
-    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
+    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
   },
   async ({ hooksAddress, chainId }) => {
     try {

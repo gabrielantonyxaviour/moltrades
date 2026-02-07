@@ -7,7 +7,7 @@
  * - Liquidity management via Position Manager
  * - Hooks discovery and interaction
  *
- * Supports both mainnet (130) and Sepolia testnet (1301)
+ * Defaults to mainnet (130). Sepolia testnet (1301) available as fallback.
  */
 
 import {
@@ -279,8 +279,8 @@ export interface LiquidityPosition {
 
 let _publicClient: PublicClient | null = null;
 let _walletClient: WalletClient | null = null;
-let _currentChainId: number = 1301; // Default to Sepolia
-let _currentChain: typeof UNICHAIN_MAINNET | typeof UNICHAIN_SEPOLIA = UNICHAIN_SEPOLIA;
+let _currentChainId: number = 130; // Default to mainnet
+let _currentChain: typeof UNICHAIN_MAINNET | typeof UNICHAIN_SEPOLIA = UNICHAIN_MAINNET;
 let _currentAccount: ReturnType<typeof privateKeyToAccount> | null = null;
 
 function getCurrentChain() {
@@ -294,7 +294,7 @@ function getCurrentAccount() {
   return _currentAccount;
 }
 
-export function initializeClients(chainId: number = 1301): {
+export function initializeClients(chainId: number = 130): {
   publicClient: PublicClient;
   walletClient: WalletClient;
   address: Address;

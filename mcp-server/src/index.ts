@@ -386,60 +386,65 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 7: uniswap_v4_quote (Unichain)
+// TOOL 7: uniswap_v4_quote (Unichain) - Using uniswap-v4-full.ts
 // =============================================================================
+
+// TODO: Change back to 130 for mainnet
+const DEFAULT_UNICHAIN_ID = 1301; // Temporarily using Sepolia for testing
 
 server.tool(
   'uniswap_v4_quote',
-  'Get a swap quote from Uniswap V4 on Unichain mainnet. Free to call, no gas spent.',
+  'Get a swap quote from Uniswap V4 on Unichain. Free to call, no gas spent.',
   {
     tokenIn: z.string().describe('Input token symbol or address (e.g. "WETH", "USDC", or address)'),
     tokenOut: z.string().describe('Output token symbol or address (e.g. "USDC", "UNI", or address)'),
     amountIn: z.string().describe('Human-readable amount to swap (e.g. "1.0", "100")'),
-    fee: z.number().optional().describe('Fee tier in bps (default: 3000 = 0.3%)'),
+    fee: z.number().optional().describe('Fee tier in bps (default: 500 = 0.05%)'),
+    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
   },
-  async ({ tokenIn, tokenOut, amountIn, fee }) => {
+  async ({ tokenIn, tokenOut, amountIn, fee, chainId }) => {
     try {
-      const tokens = uniswapV4.getAvailableTokens();
+      const chain = chainId || DEFAULT_UNICHAIN_ID;
+      uniswapV4Full.initializeClients(chain);
+      const tokens = uniswapV4Full.getAvailableTokens();
+      const networkInfo = uniswapV4Full.getNetworkInfo();
 
       // Resolve token addresses from symbols
       const tokenInAddr = tokenIn.startsWith('0x')
-        ? tokenIn as Address
-        : tokens.find((t) => t.symbol.toLowerCase() === tokenIn.toLowerCase())?.address;
+        ? tokenIn as `0x${string}`
+        : (tokens as Record<string, `0x${string}`>)[tokenIn.toUpperCase()];
       const tokenOutAddr = tokenOut.startsWith('0x')
-        ? tokenOut as Address
-        : tokens.find((t) => t.symbol.toLowerCase() === tokenOut.toLowerCase())?.address;
+        ? tokenOut as `0x${string}`
+        : (tokens as Record<string, `0x${string}`>)[tokenOut.toUpperCase()];
 
       if (!tokenInAddr) {
         return {
-          content: [{ type: 'text' as const, text: `Token not found: ${tokenIn}. Available: ${tokens.map((t) => t.symbol).join(', ')}` }],
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenIn}. Available: ${Object.keys(tokens).join(', ')}` }],
         };
       }
       if (!tokenOutAddr) {
         return {
-          content: [{ type: 'text' as const, text: `Token not found: ${tokenOut}. Available: ${tokens.map((t) => t.symbol).join(', ')}` }],
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenOut}. Available: ${Object.keys(tokens).join(', ')}` }],
         };
       }
 
-      const quote = await uniswapV4.getSwapQuote(
+      const quote = await uniswapV4Full.getSwapQuote(
         tokenInAddr,
         tokenOutAddr,
         amountIn,
-        fee || 3000
+        fee || 500
       );
 
       return {
         content: [{
           type: 'text' as const,
           text: JSON.stringify({
-            chain: 'Unichain (130)',
+            chain: `${networkInfo.name} (${networkInfo.chainId})`,
             protocol: 'Uniswap V4',
-            route: quote.route,
             input: `${quote.amountInFormatted} ${quote.tokenInSymbol}`,
             output: `${quote.amountOutFormatted} ${quote.tokenOutSymbol}`,
-            fee: `${(quote.fee / 10000).toFixed(2)}%`,
-            priceImpact: quote.priceImpact,
-            gasEstimate: quote.gasEstimate,
+            fee: `${quote.poolKey.fee / 10000}%`,
+            route: quote.route,
             message: 'Quote ready. Use uniswap_v4_swap to execute.',
           }, null, 2),
         }],
@@ -454,53 +459,48 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 8: uniswap_v4_swap (Unichain)
+// TOOL 8: uniswap_v4_swap (Unichain) - Using uniswap-v4-full.ts
 // =============================================================================
 
 server.tool(
   'uniswap_v4_swap',
-  'Execute a swap via Uniswap V4 on Unichain mainnet. This spends real gas and tokens.',
+  'Execute a swap via Uniswap V4 on Unichain. This spends real gas and tokens.',
   {
     tokenIn: z.string().describe('Input token symbol or address'),
     tokenOut: z.string().describe('Output token symbol or address'),
     amountIn: z.string().describe('Human-readable amount to swap'),
     slippageBps: z.number().optional().describe('Slippage tolerance in bps (default: 50 = 0.5%)'),
-    fee: z.number().optional().describe('Fee tier in bps (default: 3000 = 0.3%)'),
+    fee: z.number().optional().describe('Fee tier in bps (default: 500 = 0.05%)'),
+    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
   },
-  async ({ tokenIn, tokenOut, amountIn, slippageBps, fee }) => {
+  async ({ tokenIn, tokenOut, amountIn, slippageBps, fee, chainId }) => {
     try {
-      initializeLifiSDK(); // Ensure wallet is initialized
-
-      const tokens = uniswapV4.getAvailableTokens();
+      const chain = chainId || DEFAULT_UNICHAIN_ID;
+      uniswapV4Full.initializeClients(chain);
+      const tokens = uniswapV4Full.getAvailableTokens();
+      const networkInfo = uniswapV4Full.getNetworkInfo();
 
       // Resolve token addresses
       const tokenInAddr = tokenIn.startsWith('0x')
-        ? tokenIn as Address
-        : tokens.find((t) => t.symbol.toLowerCase() === tokenIn.toLowerCase())?.address;
+        ? tokenIn as `0x${string}`
+        : (tokens as Record<string, `0x${string}`>)[tokenIn.toUpperCase()];
       const tokenOutAddr = tokenOut.startsWith('0x')
-        ? tokenOut as Address
-        : tokens.find((t) => t.symbol.toLowerCase() === tokenOut.toLowerCase())?.address;
+        ? tokenOut as `0x${string}`
+        : (tokens as Record<string, `0x${string}`>)[tokenOut.toUpperCase()];
 
       if (!tokenInAddr || !tokenOutAddr) {
         return {
-          content: [{ type: 'text' as const, text: `Token not found. Available: ${tokens.map((t) => t.symbol).join(', ')}` }],
+          content: [{ type: 'text' as const, text: `Token not found. Available: ${Object.keys(tokens).join(', ')}` }],
         };
       }
 
-      // Get quote first to calculate minAmountOut
-      const quote = await uniswapV4.getSwapQuote(tokenInAddr, tokenOutAddr, amountIn, fee || 3000);
-
-      // Apply slippage
-      const slippage = slippageBps || 50;
-      const minAmountOut = (BigInt(quote.amountOut) * BigInt(10000 - slippage) / BigInt(10000)).toString();
-
-      // Execute swap
-      const result = await uniswapV4.executeSwap(
+      // Execute swap using the working V4 implementation
+      const result = await uniswapV4Full.executeSwap(
         tokenInAddr,
         tokenOutAddr,
         amountIn,
-        minAmountOut,
-        fee || 3000
+        slippageBps || 50,
+        fee || 500
       );
 
       if (!result.success) {
@@ -510,7 +510,7 @@ server.tool(
             text: JSON.stringify({
               success: false,
               error: result.error,
-              chain: 'Unichain',
+              chain: networkInfo.name,
               protocol: 'Uniswap V4',
             }, null, 2),
           }],
@@ -522,9 +522,9 @@ server.tool(
           type: 'text' as const,
           text: JSON.stringify({
             success: true,
-            chain: 'Unichain (130)',
+            chain: `${networkInfo.name} (${networkInfo.chainId})`,
             protocol: 'Uniswap V4',
-            swap: `${amountIn} ${quote.tokenInSymbol} → ${quote.amountOutFormatted} ${quote.tokenOutSymbol}`,
+            swap: `${result.amountIn} → ${result.amountOut}`,
             txHash: result.txHash,
             explorerUrl: result.explorerUrl,
             message: 'Swap executed successfully! Use publish_trade to share on Moltrades.',
@@ -541,16 +541,26 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 6: uniswap_v4_tokens (Unichain)
+// TOOL 6: uniswap_v4_tokens (Unichain) - Using uniswap-v4-full.ts
 // =============================================================================
 
 server.tool(
   'uniswap_v4_tokens',
-  'List available tokens for Uniswap V4 trading on Unichain mainnet',
-  {},
-  async () => {
-    const tokens = uniswapV4.getAvailableTokens();
-    const chainInfo = uniswapV4.getUnichainInfo();
+  'List available tokens for Uniswap V4 trading on Unichain',
+  {
+    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
+  },
+  async ({ chainId }) => {
+    const chain = chainId || DEFAULT_UNICHAIN_ID;
+    uniswapV4Full.initializeClients(chain);
+    const tokens = uniswapV4Full.getAvailableTokens();
+    const chainInfo = uniswapV4Full.getNetworkInfo();
+
+    // Format tokens as array
+    const tokenList = Object.entries(tokens).map(([symbol, address]) => ({
+      symbol,
+      address,
+    }));
 
     return {
       content: [{
@@ -559,11 +569,7 @@ server.tool(
           chain: chainInfo.name,
           chainId: chainInfo.chainId,
           explorer: chainInfo.explorer,
-          tokens: tokens.map((t) => ({
-            symbol: t.symbol,
-            address: t.address,
-            decimals: t.decimals,
-          })),
+          tokens: tokenList,
           contracts: chainInfo.contracts,
         }, null, 2),
       }],
@@ -581,11 +587,11 @@ server.tool(
   {
     tokenA: z.string().describe('First token symbol or address (e.g. "WETH", "USDC")'),
     tokenB: z.string().describe('Second token symbol or address (e.g. "USDC", "UNI")'),
-    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
+    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
   },
   async ({ tokenA, tokenB, chainId }) => {
     try {
-      const chain = chainId || 130;
+      const chain = chainId || DEFAULT_UNICHAIN_ID;
       uniswapV4Full.initializeClients(chain);
       const tokens = uniswapV4Full.getAvailableTokens();
 
@@ -650,11 +656,11 @@ server.tool(
   'Check Uniswap V4 hooks permissions for a given hooks contract address. Shows which lifecycle hooks are enabled.',
   {
     hooksAddress: z.string().describe('Hooks contract address (or 0x0 for no hooks)'),
-    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
+    chainId: z.number().optional().describe('Chain ID (130 for mainnet, 1301 for Sepolia testnet)'),
   },
   async ({ hooksAddress, chainId }) => {
     try {
-      const chain = chainId || 130;
+      const chain = chainId || DEFAULT_UNICHAIN_ID;
       uniswapV4Full.initializeClients(chain);
 
       const hooksInfo = await uniswapV4Full.getHooksInfo(hooksAddress as `0x${string}`);

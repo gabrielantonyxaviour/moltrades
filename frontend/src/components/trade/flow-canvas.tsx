@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useEffect, type ReactNode } from "react";
 import {
   ReactFlow,
   Background,
@@ -19,6 +19,7 @@ import { BridgeNode } from "./nodes/bridge-node";
 import { SwapNode } from "./nodes/swap-node";
 import { DepositNode } from "./nodes/deposit-node";
 import { OutputNode } from "./nodes/output-node";
+import { PhaseDividerNode } from "./nodes/phase-divider-node";
 import { Workflow } from "lucide-react";
 
 interface ExecutionState {
@@ -34,6 +35,7 @@ interface FlowCanvasProps {
   onEdgesChange: (edges: Edge[]) => void;
   onNodeClick: (node: Node) => void;
   executionState: ExecutionState;
+  children?: ReactNode;
 }
 
 const nodeTypes = {
@@ -42,6 +44,7 @@ const nodeTypes = {
   swap: SwapNode,
   deposit: DepositNode,
   output: OutputNode,
+  phaseDivider: PhaseDividerNode,
 };
 
 export function FlowCanvas({
@@ -51,6 +54,7 @@ export function FlowCanvas({
   onEdgesChange,
   onNodeClick,
   executionState,
+  children,
 }: FlowCanvasProps) {
   const [flowNodes, setNodes, onNodesChangeInternal] = useNodesState(nodes);
   const [flowEdges, setEdges, onEdgesChangeInternal] = useEdgesState(edges);
@@ -77,37 +81,42 @@ export function FlowCanvas({
 
   if (nodes.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-        <Workflow className="w-16 h-16 mb-4 opacity-30" />
-        <p className="text-lg font-medium">No flow yet</p>
-        <p className="text-sm">Describe your trade in the chat to get started</p>
+      <div className="h-full relative">
+        <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+          <Workflow className="w-16 h-16 mb-4 opacity-30" />
+          <p className="text-lg font-medium">No flow yet</p>
+          <p className="text-sm">Describe your trade in the chat to get started</p>
+        </div>
+        {children}
       </div>
     );
   }
 
   return (
-    <ReactFlow
-      nodes={flowNodes}
-      edges={flowEdges}
-      onNodesChange={onNodesChangeInternal}
-      onEdgesChange={onEdgesChangeInternal}
-      onNodeClick={handleNodeClick}
-      nodeTypes={nodeTypes}
-      colorMode="dark"
-      fitView
-      fitViewOptions={{ padding: 0.3 }}
-    >
-      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
-      <Controls className="bg-card border border-border rounded-lg" />
-      <MiniMap
-        className="bg-card border border-border rounded-lg"
-        nodeColor={(node) => {
-          if (node.data?.status === "complete") return "hsl(var(--accent))";
-          if (node.data?.status === "executing") return "hsl(var(--primary))";
-          return "hsl(var(--muted))";
-        }}
-      />
-    </ReactFlow>
+    <div className="h-full relative">
+      <ReactFlow
+        nodes={flowNodes}
+        edges={flowEdges}
+        onNodesChange={onNodesChangeInternal}
+        onEdgesChange={onEdgesChangeInternal}
+        onNodeClick={handleNodeClick}
+        nodeTypes={nodeTypes}
+        colorMode="dark"
+        fitView
+        fitViewOptions={{ padding: 0.3 }}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
+        <Controls className="bg-card border border-border rounded-lg" />
+        <MiniMap
+          className="bg-card border border-border rounded-lg"
+          nodeColor={(node) => {
+            if (node.data?.status === "complete") return "hsl(var(--accent))";
+            if (node.data?.status === "executing") return "hsl(var(--primary))";
+            return "hsl(var(--muted))";
+          }}
+        />
+      </ReactFlow>
+      {children}
+    </div>
   );
 }
-

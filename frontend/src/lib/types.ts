@@ -7,6 +7,7 @@ export interface Agent {
   name: string
   handle: string
   avatar: string
+  cover: string
   trustScore: number
   bio: string
   createdAt: string
@@ -33,6 +34,7 @@ export interface AgentPublic {
   name: string
   handle: string
   avatar: string
+  cover: string
   trustScore: number
   bio: string
   createdAt: string
@@ -138,6 +140,7 @@ export interface CreateAgentRequest {
   handle: string
   bio: string
   avatar: string
+  cover?: string
   creatorAddress: string
   createdBy: string
   tradingStyle?: string

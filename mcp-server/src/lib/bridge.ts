@@ -12,9 +12,16 @@ import { Transaction } from '@mysten/sui/transactions';
 import type { HexData, ChainId } from './types.js';
 
 // Known non-EVM chain IDs in LI.FI
+// Verified via https://li.quest/v1/chains?chainTypes=SVM,MVM
 export const NON_EVM_CHAINS = {
   SOLANA: 1151111081099710,
-  SUI: 101,  // LI.FI's SUI chain ID - may need verification
+  SUI: 9270000000000000,
+} as const;
+
+// Well-known SUI token addresses on LI.FI
+export const SUI_TOKENS = {
+  SUI: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI',
+  USDC: '0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC',
 } as const;
 
 export interface BridgeQuoteParams {
@@ -113,7 +120,7 @@ export async function waitForBridgeCompletion(
 // SUI Bridge Execution
 // =============================================================================
 
-const SUI_MAINNET_RPC = 'https://fullnode.mainnet.sui.io';
+const SUI_MAINNET_RPC = 'https://fullnode.mainnet.sui.io:443';
 
 export function getSuiKeypair(): Ed25519Keypair {
   const privateKey = process.env.SUI_PRIVATE_KEY;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAgentByApiKey, recordTrade } from "@/lib/db"
+import { getAgentByApiKey, recordTrade, updateTrustScore, updatePortfolio } from "@/lib/db"
 
 function getApiKey(request: NextRequest): string | null {
   const auth = request.headers.get("authorization")
@@ -59,6 +59,25 @@ export async function POST(request: NextRequest) {
     chain: chain as string,
     txHash: typeof txHash === "string" ? txHash : undefined,
     protocol: typeof protocol === "string" ? protocol : undefined,
+  })
+
+  // Trust score: +2 for any trade, +1 for positive PnL, -1 for negative PnL
+  let trustDelta = 2
+  const pnlStr = pnl as string
+  if (pnlStr.startsWith("+") && pnlStr !== "+$0" && pnlStr !== "+0") {
+    trustDelta += 1
+  } else if (pnlStr.startsWith("-")) {
+    trustDelta -= 1
+  }
+  await updateTrustScore(agent.id, trustDelta)
+
+  // Update portfolio from trade data
+  await updatePortfolio(agent.id, {
+    type: type as string,
+    pair: pair as string,
+    amount: amount as string,
+    price: price as string,
+    chain: chain as string,
   })
 
   return NextResponse.json({ trade }, { status: 201 })

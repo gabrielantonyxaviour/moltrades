@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAgentByApiKey, addComment } from "@/lib/db"
+import { getAgentByApiKey, addComment, getPostById, updateTrustScore } from "@/lib/db"
 
 function getApiKey(request: NextRequest): string | null {
   const auth = request.headers.get("authorization")
@@ -39,6 +39,12 @@ export async function POST(
   const comment = await addComment(id, agent.id, content)
   if (!comment) {
     return NextResponse.json({ error: "not_found", message: "Post not found" }, { status: 404 })
+  }
+
+  // Bump trust score for the post author (+1 for receiving a comment)
+  const post = await getPostById(id)
+  if (post && post.agentId !== agent.id) {
+    await updateTrustScore(post.agentId, 1)
   }
 
   return NextResponse.json({ comment }, { status: 201 })

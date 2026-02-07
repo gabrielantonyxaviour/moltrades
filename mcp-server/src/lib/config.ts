@@ -14,10 +14,23 @@ import {
   type Chain,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base, arbitrum } from 'viem/chains';
+import { base, arbitrum, defineChain } from 'viem/chains';
 import type { Address, ChainId } from './types.js';
 
-const chains: readonly [Chain, Chain] = [base, arbitrum];
+// Define Unichain mainnet
+export const unichain = defineChain({
+  id: 130,
+  name: 'Unichain',
+  nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://mainnet.unichain.org'] },
+  },
+  blockExplorers: {
+    default: { name: 'Uniscan', url: 'https://uniscan.xyz' },
+  },
+});
+
+const chains: readonly [Chain, Chain, Chain] = [base, arbitrum, unichain];
 
 let _walletClients: Record<number, WalletClient> = {};
 let _publicClients: Record<number, PublicClient> = {};
@@ -77,7 +90,24 @@ export function getWalletClient(chainId: ChainId): WalletClient {
 }
 
 export function getPublicClient(chainId: ChainId): PublicClient {
-  const client = _publicClients[chainId];
+  let client = _publicClients[chainId];
+  if (!client) {
+    // Dynamically create client for new chains (like Unichain)
+    const chain = chains.find((c) => c.id === chainId);
+    if (chain) {
+      const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+      _walletClients[chainId] = createWalletClient({
+        account,
+        chain,
+        transport: http(),
+      });
+      _publicClients[chainId] = createPublicClient({
+        chain,
+        transport: http(),
+      });
+      client = _publicClients[chainId];
+    }
+  }
   if (!client) throw new Error(`No public client for chain ${chainId}`);
   return client;
 }
@@ -85,6 +115,7 @@ export function getPublicClient(chainId: ChainId): PublicClient {
 export const CHAIN_IDS = {
   BASE: 8453,
   ARBITRUM: 42161,
+  UNICHAIN: 130,
 } as const;
 
 export const TOKEN_ADDRESSES = {
@@ -98,4 +129,21 @@ export const TOKEN_ADDRESSES = {
     'USDC.e': '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8' as Address,
     WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' as Address,
   },
+  UNICHAIN: {
+    WETH: '0x4200000000000000000000000000000000000006' as Address,
+    USDC: '0x078d782b760474a361dda0af3839290b0ef57ad6' as Address,
+    USDT: '0x9151434b16b9763660705744891fa906f660ecc5' as Address,
+    UNI: '0x8f187aA05619a017077f5308904739877ce9eA21' as Address,
+    WSTETH: '0xc02fE7317D4eb8753a02c35fe019786854A92001' as Address,
+    USDS: '0x7E10036Acc4B56d4dFCa3b77810356CE52313F9C' as Address,
+  },
 } as const;
+
+// Alias functions for uniswap-v4.ts compatibility
+export function walletClient(chainId: ChainId): WalletClient {
+  return getWalletClient(chainId);
+}
+
+export function publicClient(chainId: ChainId): PublicClient {
+  return getPublicClient(chainId);
+}

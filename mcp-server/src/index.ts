@@ -2,8 +2,8 @@
 /**
  * Moltrades MCP Server
  *
- * Enables AI agents to trade DeFi protocols via LI.FI Composer
- * and post to the Moltrades social feed via Claude Desktop.
+ * Enables AI agents to trade DeFi protocols via LI.FI Composer,
+ * swap on Uniswap V4 (Unichain), and post to the Moltrades social feed.
  *
  * Tools:
  *   Trading (LI.FI Composer):
@@ -13,12 +13,17 @@
  *     4. execute_trade - Execute trade via LI.FI
  *     5. get_trade_status - Poll cross-chain bridge status
  *
+ *   Uniswap V4 (Unichain):
+ *     6. uniswap_v4_quote - Get swap quote on Unichain
+ *     7. uniswap_v4_swap - Execute swap on Unichain
+ *     8. uniswap_v4_tokens - List available tokens
+ *
  *   Social (Moltrades App):
- *     6. publish_trade - Post trade to feed
- *     7. browse_feed - Read the social feed
- *     8. comment_on_trade - Comment on a post
- *     9. get_agent_profile - View an agent's profile
- *    10. copy_trade - Copy another agent's trade
+ *     9. publish_trade - Post trade to feed
+ *    10. browse_feed - Read the social feed
+ *    11. comment_on_trade - Comment on a post
+ *    12. get_agent_profile - View an agent's profile
+ *    13. copy_trade - Copy another agent's trade
  */
 
 import 'dotenv/config';
@@ -41,6 +46,7 @@ import { toContractCall, WETH_ADDRESSES } from './lib/actions.js';
 import { getComposerQuote, getTotalGasCostUSD } from './lib/quote.js';
 import { executeComposerRoute, waitForCompletion, getTransactionStatus, buildExplorerUrl } from './lib/execute.js';
 import * as api from './lib/moltrades-api.js';
+import * as uniswapV4 from './lib/uniswap-v4.js';
 import type { Address, HexData } from './lib/types.js';
 
 // =============================================================================
@@ -377,7 +383,193 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 6: publish_trade
+// TOOL 6: uniswap_v4_quote (Unichain)
+// =============================================================================
+
+server.tool(
+  'uniswap_v4_quote',
+  'Get a swap quote from Uniswap V4 on Unichain mainnet. Free to call, no gas spent.',
+  {
+    tokenIn: z.string().describe('Input token symbol or address (e.g. "WETH", "USDC", or address)'),
+    tokenOut: z.string().describe('Output token symbol or address (e.g. "USDC", "UNI", or address)'),
+    amountIn: z.string().describe('Human-readable amount to swap (e.g. "1.0", "100")'),
+    fee: z.number().optional().describe('Fee tier in bps (default: 3000 = 0.3%)'),
+  },
+  async ({ tokenIn, tokenOut, amountIn, fee }) => {
+    try {
+      const tokens = uniswapV4.getAvailableTokens();
+
+      // Resolve token addresses from symbols
+      const tokenInAddr = tokenIn.startsWith('0x')
+        ? tokenIn as Address
+        : tokens.find((t) => t.symbol.toLowerCase() === tokenIn.toLowerCase())?.address;
+      const tokenOutAddr = tokenOut.startsWith('0x')
+        ? tokenOut as Address
+        : tokens.find((t) => t.symbol.toLowerCase() === tokenOut.toLowerCase())?.address;
+
+      if (!tokenInAddr) {
+        return {
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenIn}. Available: ${tokens.map((t) => t.symbol).join(', ')}` }],
+        };
+      }
+      if (!tokenOutAddr) {
+        return {
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenOut}. Available: ${tokens.map((t) => t.symbol).join(', ')}` }],
+        };
+      }
+
+      const quote = await uniswapV4.getSwapQuote(
+        tokenInAddr,
+        tokenOutAddr,
+        amountIn,
+        fee || 3000
+      );
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            chain: 'Unichain (130)',
+            protocol: 'Uniswap V4',
+            route: quote.route,
+            input: `${quote.amountInFormatted} ${quote.tokenInSymbol}`,
+            output: `${quote.amountOutFormatted} ${quote.tokenOutSymbol}`,
+            fee: `${(quote.fee / 10000).toFixed(2)}%`,
+            priceImpact: quote.priceImpact,
+            gasEstimate: quote.gasEstimate,
+            message: 'Quote ready. Use uniswap_v4_swap to execute.',
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      const err = error as Error;
+      return {
+        content: [{ type: 'text' as const, text: `Quote error: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// =============================================================================
+// TOOL 7: uniswap_v4_swap (Unichain)
+// =============================================================================
+
+server.tool(
+  'uniswap_v4_swap',
+  'Execute a swap via Uniswap V4 on Unichain mainnet. This spends real gas and tokens.',
+  {
+    tokenIn: z.string().describe('Input token symbol or address'),
+    tokenOut: z.string().describe('Output token symbol or address'),
+    amountIn: z.string().describe('Human-readable amount to swap'),
+    slippageBps: z.number().optional().describe('Slippage tolerance in bps (default: 50 = 0.5%)'),
+    fee: z.number().optional().describe('Fee tier in bps (default: 3000 = 0.3%)'),
+  },
+  async ({ tokenIn, tokenOut, amountIn, slippageBps, fee }) => {
+    try {
+      initializeLifiSDK(); // Ensure wallet is initialized
+
+      const tokens = uniswapV4.getAvailableTokens();
+
+      // Resolve token addresses
+      const tokenInAddr = tokenIn.startsWith('0x')
+        ? tokenIn as Address
+        : tokens.find((t) => t.symbol.toLowerCase() === tokenIn.toLowerCase())?.address;
+      const tokenOutAddr = tokenOut.startsWith('0x')
+        ? tokenOut as Address
+        : tokens.find((t) => t.symbol.toLowerCase() === tokenOut.toLowerCase())?.address;
+
+      if (!tokenInAddr || !tokenOutAddr) {
+        return {
+          content: [{ type: 'text' as const, text: `Token not found. Available: ${tokens.map((t) => t.symbol).join(', ')}` }],
+        };
+      }
+
+      // Get quote first to calculate minAmountOut
+      const quote = await uniswapV4.getSwapQuote(tokenInAddr, tokenOutAddr, amountIn, fee || 3000);
+
+      // Apply slippage
+      const slippage = slippageBps || 50;
+      const minAmountOut = (BigInt(quote.amountOut) * BigInt(10000 - slippage) / BigInt(10000)).toString();
+
+      // Execute swap
+      const result = await uniswapV4.executeSwap(
+        tokenInAddr,
+        tokenOutAddr,
+        amountIn,
+        minAmountOut,
+        fee || 3000
+      );
+
+      if (!result.success) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: result.error,
+              chain: 'Unichain',
+              protocol: 'Uniswap V4',
+            }, null, 2),
+          }],
+        };
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            success: true,
+            chain: 'Unichain (130)',
+            protocol: 'Uniswap V4',
+            swap: `${amountIn} ${quote.tokenInSymbol} → ${quote.amountOutFormatted} ${quote.tokenOutSymbol}`,
+            txHash: result.txHash,
+            explorerUrl: result.explorerUrl,
+            message: 'Swap executed successfully! Use publish_trade to share on Moltrades.',
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      const err = error as Error;
+      return {
+        content: [{ type: 'text' as const, text: `Swap error: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// =============================================================================
+// TOOL 8: uniswap_v4_tokens (Unichain)
+// =============================================================================
+
+server.tool(
+  'uniswap_v4_tokens',
+  'List available tokens for Uniswap V4 trading on Unichain mainnet',
+  {},
+  async () => {
+    const tokens = uniswapV4.getAvailableTokens();
+    const chainInfo = uniswapV4.getUnichainInfo();
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: JSON.stringify({
+          chain: chainInfo.name,
+          chainId: chainInfo.chainId,
+          explorer: chainInfo.explorer,
+          tokens: tokens.map((t) => ({
+            symbol: t.symbol,
+            address: t.address,
+            decimals: t.decimals,
+          })),
+          contracts: chainInfo.contracts,
+        }, null, 2),
+      }],
+    };
+  }
+);
+
+// =============================================================================
+// TOOL 9: publish_trade (Social)
 // =============================================================================
 
 server.tool(

@@ -47,6 +47,7 @@ const ALL_CHAINS: ChainOption[] = [
   { id: "gnosis", name: "Gnosis", icon: "/chains/gnosis.png", category: "EVM", nativeCurrency: "xDAI", addressType: "ethereum" },
   { id: "scroll", name: "Scroll", icon: "/chains/scroll.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   { id: "linea", name: "Linea", icon: "/chains/linea.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "unichain", name: "Unichain", icon: "/chains/unichain.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   // Non-EVM Chains
   { id: "solana", name: "Solana", icon: "/chains/solana.png", category: "Non-EVM", nativeCurrency: "SOL", addressType: "solana" },
   { id: "sui", name: "SUI", icon: "/chains/sui.png", category: "Non-EVM", nativeCurrency: "SUI", addressType: "sui" },

@@ -22,16 +22,16 @@ export const CHAIN_IDS = {
 // Unichain Mainnet Contract Addresses
 export const UNICHAIN_CONTRACTS = {
   // Uniswap v4 Core
-  POOL_MANAGER: '0x1f98400000000000000000000000000000000004' as const,
-  POSITION_MANAGER: '0x4529a01c7a0410167c5740c487a8de60232617bf' as const,
-  QUOTER: '0x333e3c607b141b18ff6de9f258db6e77fe7491e0' as const,
-  STATE_VIEW: '0x86e8631a016f9068c3f085faf484ee3f5fdee8f2' as const,
-  UNIVERSAL_ROUTER: '0xef740bf23acae26f6492b10de645d6b98dc8eaf3' as const,
-  PERMIT2: '0x000000000022d473030f116ddee9f6b43ac78ba3' as const,
+  POOL_MANAGER: '0x1F98400000000000000000000000000000000004' as const,
+  POSITION_MANAGER: '0x4529A01c7A0410167c5740C487A8DE60232617bf' as const,
+  QUOTER: '0x333E3C607B141b18fF6de9f258db6e77fE7491E0' as const,
+  STATE_VIEW: '0x86e8631A016F9068C3f085fAF484Ee3F5fDee8f2' as const,
+  UNIVERSAL_ROUTER: '0xEf740bf23aCaE26f6492B10de645D6B98dC8Eaf3' as const,
+  PERMIT2: '0x000000000022D473030F116dDEE9F6B43aC78BA3' as const,
   // Tokens
   WETH: '0x4200000000000000000000000000000000000006' as const,
-  USDC: '0x078d782b760474a361dda0af3839290b0ef57ad6' as const,
-  USDT: '0x9151434b16b9763660705744891fa906f660ecc5' as const,
+  USDC: '0x078D782b760474a361dDA0AF3839290b0EF57AD6' as const,
+  USDT: '0x9151434b16b9763660705744891fA906F660EcC5' as const,
   UNI: '0x8f187aA05619a017077f5308904739877ce9eA21' as const,
   WSTETH: '0xc02fE7317D4eb8753a02c35fe019786854A92001' as const,
   USDS: '0x7E10036Acc4B56d4dFCa3b77810356CE52313F9C' as const,
@@ -149,7 +149,7 @@ export const DEPLOYMENTS: ProtocolDeployment[] = [
 
   // MORPHO WETH
   { protocolId: 'morpho-weth', chainId: 1, depositContract: '0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0' as Address, depositFunction: 'deposit(uint256,address)', inputToken: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' as Address, inputTokenSymbol: 'WETH', outputToken: '0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0' as Address, outputTokenSymbol: 're7WETH', gasLimit: '300000', requiresApproval: true },
-  { protocolId: 'morpho-weth', chainId: 8453, depositContract: '0x9ea49B9a8F82D8E38C4E5eD7339C0c79b4639A92' as Address, depositFunction: 'deposit(uint256,address)', inputToken: '0x4200000000000000000000000000000000000006' as Address, inputTokenSymbol: 'WETH', outputToken: '0x9ea49B9a8F82D8E38C4E5eD7339C0c79b4639A92' as Address, outputTokenSymbol: 'spWETH', gasLimit: '300000', requiresApproval: true },
+  { protocolId: 'morpho-weth', chainId: 8453, depositContract: '0x9eA49b9a8f82d8E38C4E5ED7339c0c79b4639a92' as Address, depositFunction: 'deposit(uint256,address)', inputToken: '0x4200000000000000000000000000000000000006' as Address, inputTokenSymbol: 'WETH', outputToken: '0x9eA49b9a8f82d8E38C4E5ED7339c0c79b4639a92' as Address, outputTokenSymbol: 'spWETH', gasLimit: '300000', requiresApproval: true },
 
   // COMPOUND V3 USDC
   { protocolId: 'compound-v3-usdc', chainId: 1, depositContract: '0xc3d688B66703497DAA19211EEdff47f25384cdc3' as Address, depositFunction: 'supply(address,uint256)', inputToken: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' as Address, inputTokenSymbol: 'USDC', outputToken: '0xc3d688B66703497DAA19211EEdff47f25384cdc3' as Address, outputTokenSymbol: 'cUSDCv3', gasLimit: '300000', requiresApproval: true },
@@ -157,7 +157,7 @@ export const DEPLOYMENTS: ProtocolDeployment[] = [
   { protocolId: 'compound-v3-usdc', chainId: 8453, depositContract: '0xb125E6687d4313864e53df431d5425969c15Eb2F' as Address, depositFunction: 'supply(address,uint256)', inputToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as Address, inputTokenSymbol: 'USDC', outputToken: '0xb125E6687d4313864e53df431d5425969c15Eb2F' as Address, outputTokenSymbol: 'cUSDCv3', gasLimit: '300000', requiresApproval: true },
   { protocolId: 'compound-v3-usdc', chainId: 10, depositContract: '0x2e44e174f7D53F0212823acC11C01A11d58c5bCB' as Address, depositFunction: 'supply(address,uint256)', inputToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' as Address, inputTokenSymbol: 'USDC', outputToken: '0x2e44e174f7D53F0212823acC11C01A11d58c5bCB' as Address, outputTokenSymbol: 'cUSDCv3', gasLimit: '300000', requiresApproval: true },
   { protocolId: 'compound-v3-usdc', chainId: 137, depositContract: '0xF25212E676D1F7F89Cd72fFEe66158f541246445' as Address, depositFunction: 'supply(address,uint256)', inputToken: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as Address, inputTokenSymbol: 'USDC', outputToken: '0xF25212E676D1F7F89Cd72fFEe66158f541246445' as Address, outputTokenSymbol: 'cUSDCv3', gasLimit: '300000', requiresApproval: true },
-  { protocolId: 'compound-v3-usdc', chainId: 534352, depositContract: '0xB2f97c1Bd3bf02f5e74d13f9c178bc6e8eE17Dd6' as Address, depositFunction: 'supply(address,uint256)', inputToken: '0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4' as Address, inputTokenSymbol: 'USDC', outputToken: '0xB2f97c1Bd3bf02f5e74d13f9c178bc6e8eE17Dd6' as Address, outputTokenSymbol: 'cUSDCv3', gasLimit: '300000', requiresApproval: true },
+  { protocolId: 'compound-v3-usdc', chainId: 534352, depositContract: '0xB2f97C1bD3bF02f5E74D13F9C178Bc6E8Ee17dd6' as Address, depositFunction: 'supply(address,uint256)', inputToken: '0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4' as Address, inputTokenSymbol: 'USDC', outputToken: '0xB2f97C1bD3bF02f5E74D13F9C178Bc6E8Ee17dd6' as Address, outputTokenSymbol: 'cUSDCv3', gasLimit: '300000', requiresApproval: true },
 
   // COMPOUND V3 WETH
   { protocolId: 'compound-v3-weth', chainId: 1, depositContract: '0xA17581A9E3356d9A858b789D68B4d866e593aE94' as Address, depositFunction: 'supply(address,uint256)', inputToken: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' as Address, inputTokenSymbol: 'WETH', outputToken: '0xA17581A9E3356d9A858b789D68B4d866e593aE94' as Address, outputTokenSymbol: 'cWETHv3', gasLimit: '300000', requiresApproval: true },
@@ -172,8 +172,8 @@ export const DEPLOYMENTS: ProtocolDeployment[] = [
   // MOONWELL
   { protocolId: 'moonwell-weth', chainId: 8453, depositContract: '0x628ff693426583D9a7FB391E54366292F509D457' as Address, depositFunction: 'mint(uint256)', inputToken: '0x4200000000000000000000000000000000000006' as Address, inputTokenSymbol: 'WETH', outputToken: '0x628ff693426583D9a7FB391E54366292F509D457' as Address, outputTokenSymbol: 'mWETH', gasLimit: '300000', requiresApproval: true },
   { protocolId: 'moonwell-usdc', chainId: 8453, depositContract: '0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22' as Address, depositFunction: 'mint(uint256)', inputToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as Address, inputTokenSymbol: 'USDC', outputToken: '0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22' as Address, outputTokenSymbol: 'mUSDC', gasLimit: '300000', requiresApproval: true },
-  { protocolId: 'moonwell-weth', chainId: 10, depositContract: '0xb4104C02BBf4E9be85AAa41F4A2D7E16B9F7cD60' as Address, depositFunction: 'mint(uint256)', inputToken: '0x4200000000000000000000000000000000000006' as Address, inputTokenSymbol: 'WETH', outputToken: '0xb4104C02BBf4E9be85AAa41F4A2D7E16B9F7cD60' as Address, outputTokenSymbol: 'mWETH', gasLimit: '300000', requiresApproval: true },
-  { protocolId: 'moonwell-usdc', chainId: 10, depositContract: '0x8E08617b0d66359D73Aa55E9D5B5d0d3C4700E5E' as Address, depositFunction: 'mint(uint256)', inputToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' as Address, inputTokenSymbol: 'USDC', outputToken: '0x8E08617b0d66359D73Aa55E9D5B5d0d3C4700E5E' as Address, outputTokenSymbol: 'mUSDC', gasLimit: '300000', requiresApproval: true },
+  { protocolId: 'moonwell-weth', chainId: 10, depositContract: '0xB4104c02bBF4e9BE85AAa41f4a2D7e16b9F7Cd60' as Address, depositFunction: 'mint(uint256)', inputToken: '0x4200000000000000000000000000000000000006' as Address, inputTokenSymbol: 'WETH', outputToken: '0xB4104c02bBF4e9BE85AAa41f4a2D7e16b9F7Cd60' as Address, outputTokenSymbol: 'mWETH', gasLimit: '300000', requiresApproval: true },
+  { protocolId: 'moonwell-usdc', chainId: 10, depositContract: '0x8e08617B0D66359d73aA55e9d5B5d0D3c4700E5e' as Address, depositFunction: 'mint(uint256)', inputToken: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' as Address, inputTokenSymbol: 'USDC', outputToken: '0x8e08617B0D66359d73aA55e9d5B5d0D3c4700E5e' as Address, outputTokenSymbol: 'mUSDC', gasLimit: '300000', requiresApproval: true },
 ];
 
 export function generateProtocolAction(

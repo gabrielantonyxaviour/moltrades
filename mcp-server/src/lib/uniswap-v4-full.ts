@@ -115,6 +115,11 @@ const ERC20_ABI = parseAbi([
   'function transfer(address to, uint256 amount) external returns (bool)',
 ]);
 
+const PERMIT2_ABI = parseAbi([
+  'function approve(address token, address spender, uint160 amount, uint48 expiration) external',
+  'function allowance(address user, address token, address spender) external view returns (uint160 amount, uint48 expiration, uint48 nonce)',
+]);
+
 const QUOTER_ABI = [
   {
     name: 'quoteExactInputSingle',
@@ -610,14 +615,25 @@ export async function getSwapQuote(
 // V4 UNIVERSAL ROUTER ENCODING
 // =============================================================================
 
-// V4 Universal Router Commands
-const V4_SWAP_COMMAND = 0x10;
+// Universal Router Commands
+const COMMANDS = {
+  PERMIT2_TRANSFER_FROM: 0x02,
+  V4_SWAP: 0x10,
+} as const;
 
-// V4 Actions
+// Universal Router special address constants
+const ACTION_CONSTANTS = {
+  MSG_SENDER: '0x0000000000000000000000000000000000000001' as Address, // recipient = msg.sender
+  ADDRESS_THIS: '0x0000000000000000000000000000000000000002' as Address, // recipient = router
+} as const;
+
+// V4 Actions (within V4_SWAP command)
 const V4_ACTIONS = {
   SWAP_EXACT_IN_SINGLE: 0x06,
-  SETTLE_ALL: 0x0c,
-  TAKE_ALL: 0x0f,
+  SETTLE: 0x0b,        // (Currency, uint256, bool payerIsUser)
+  SETTLE_ALL: 0x0c,    // (Currency, uint256 maxAmount) - always payerIsUser=true
+  TAKE: 0x0e,          // (Currency, address recipient, uint256)
+  TAKE_ALL: 0x0f,      // (Currency, uint256 minAmount)
 } as const;
 
 /**
@@ -652,12 +668,12 @@ function encodeExactInputSingleParams(
 }
 
 /**
- * Encode SETTLE_ALL params
+ * Encode SETTLE params (Currency, uint256 amount, bool payerIsUser)
  */
-function encodeSettleAllParams(currency: Address, maxAmount: bigint): `0x${string}` {
+function encodeSettleParams(currency: Address, amount: bigint, payerIsUser: boolean): `0x${string}` {
   return encodeAbiParameters(
-    parseAbiParameters('address, uint256'),
-    [currency, maxAmount]
+    parseAbiParameters('address, uint256, bool'),
+    [currency, amount, payerIsUser]
   );
 }
 
@@ -672,7 +688,18 @@ function encodeTakeAllParams(currency: Address, minAmount: bigint): `0x${string}
 }
 
 /**
+ * Encode SETTLE_ALL params (Currency, uint256 maxAmount)
+ */
+function encodeSettleAllParams(currency: Address, maxAmount: bigint): `0x${string}` {
+  return encodeAbiParameters(
+    parseAbiParameters('address, uint256'),
+    [currency, maxAmount]
+  );
+}
+
+/**
  * Build complete V4 swap input with actions sequence
+ * Uses SETTLE_ALL which always pulls from msg.sender via Permit2
  */
 function buildV4SwapInput(
   poolKey: PoolKey,
@@ -680,7 +707,8 @@ function buildV4SwapInput(
   amountIn: bigint,
   minAmountOut: bigint,
   tokenIn: Address,
-  tokenOut: Address
+  tokenOut: Address,
+  _tokensInRouter: boolean = false // Not used, kept for compatibility
 ): `0x${string}` {
   // Build actions bytes: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL
   const actions = concat([
@@ -737,56 +765,92 @@ export async function executeSwap(
     const isNativeETH = tokenIn.toLowerCase() === '0x0000000000000000000000000000000000000000';
 
     // Approve tokens if needed (not for native ETH)
-    // V4 uses Universal Router directly, not PERMIT2
+    // Step 1: ERC20 approve to Permit2
+    // Step 2: Permit2 approve for Universal Router as spender
     if (!isNativeETH) {
-      const allowance = await publicClient.readContract({
+      // Check ERC20 allowance to Permit2
+      const erc20Allowance = await publicClient.readContract({
         address: tokenIn,
         abi: ERC20_ABI,
         functionName: 'allowance',
-        args: [userAddress, contracts.UNIVERSAL_ROUTER],
+        args: [userAddress, contracts.PERMIT2],
       }) as bigint;
 
-      if (allowance < amountInWei) {
-        console.log('[V4] Approving token spend to Universal Router...');
+      if (erc20Allowance < amountInWei) {
+        console.log('[V4] Step 1: Approving token to Permit2...');
         const approveTx = await walletClient.writeContract({
           chain: getCurrentChain(),
           account: getCurrentAccount(),
           address: tokenIn,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [contracts.UNIVERSAL_ROUTER, amountInWei * 2n],
+          args: [contracts.PERMIT2, amountInWei * 10n], // Approve more for future txs
         });
-
         await publicClient.waitForTransactionReceipt({ hash: approveTx });
-        console.log('[V4] Approval confirmed:', approveTx);
+        console.log('[V4] ERC20 approval confirmed:', approveTx);
+      }
+
+      // Check Permit2 allowance for Universal Router
+      const [permit2Amount, permit2Expiration] = await publicClient.readContract({
+        address: contracts.PERMIT2,
+        abi: PERMIT2_ABI,
+        functionName: 'allowance',
+        args: [userAddress, tokenIn, contracts.UNIVERSAL_ROUTER],
+      }) as [bigint, number, number];
+
+      const currentTime = Math.floor(Date.now() / 1000);
+      const needsPermit2Approval = permit2Amount < amountInWei || permit2Expiration < currentTime;
+
+      if (needsPermit2Approval) {
+        console.log('[V4] Step 2: Setting Permit2 allowance for Universal Router...');
+        // Set expiration to 30 days from now
+        const expiration = currentTime + 30 * 24 * 60 * 60;
+        const permit2ApproveTx = await walletClient.writeContract({
+          chain: getCurrentChain(),
+          account: getCurrentAccount(),
+          address: contracts.PERMIT2,
+          abi: PERMIT2_ABI,
+          functionName: 'approve',
+          args: [tokenIn, contracts.UNIVERSAL_ROUTER, amountInWei * 10n, expiration],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: permit2ApproveTx });
+        console.log('[V4] Permit2 approval confirmed:', permit2ApproveTx);
       }
     }
 
-    // Build V4 swap command with proper action sequence
+    // Build commands and inputs
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800); // 30 minutes
     const zeroForOne = tokenIn.toLowerCase() === quote.poolKey.currency0.toLowerCase();
 
-    // Build V4 swap input with actions: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL
+    const ROUTER_ABI = parseAbi([
+      'function execute(bytes commands, bytes[] inputs, uint256 deadline) external payable',
+    ]);
+
+    // Build V4 swap input
+    // The V4Router handles Permit2 transfers internally when payerIsUser = true
+    // So we just need V4_SWAP command, no separate PERMIT2_TRANSFER_FROM
     const v4SwapInput = buildV4SwapInput(
       quote.poolKey,
       zeroForOne,
       amountInWei,
       minAmountOut,
       tokenIn,
-      tokenOut
+      tokenOut,
+      false // payerIsUser = true, V4Router will pull from msg.sender via Permit2
     );
 
-    // V4_SWAP command = 0x10
-    const commands = toHex(V4_SWAP_COMMAND, { size: 1 }) as `0x${string}`;
+    const commands = toHex(COMMANDS.V4_SWAP, { size: 1 }) as `0x${string}`;
     const inputs = [v4SwapInput];
 
-    const ROUTER_ABI = parseAbi([
-      'function execute(bytes commands, bytes[] inputs, uint256 deadline) external payable',
-    ]);
+    if (!isNativeETH) {
+      console.log('[V4] Executing ERC20 swap...');
+      console.log('[V4] Command: 0x10 (V4_SWAP)');
+      console.log('[V4] V4Router will use Permit2 to pull tokens from user');
+    } else {
+      console.log('[V4] Executing native ETH swap...');
+      console.log('[V4] Command: 0x10 (V4_SWAP)');
+    }
 
-    // Execute the swap
-    console.log('[V4] Executing swap with V4 encoding...');
-    console.log('[V4] Command: 0x10 (V4_SWAP)');
     console.log('[V4] Actions: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL');
     console.log('[V4] zeroForOne:', zeroForOne);
 

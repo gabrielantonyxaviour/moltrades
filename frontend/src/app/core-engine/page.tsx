@@ -3,28 +3,85 @@
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { Node, Edge } from "@xyflow/react";
+import { useWalletClient, usePublicClient, useAccount } from "wagmi";
 
 import { ChatInput } from "@/components/core-engine/chat-input";
 import { ChatPanel } from "@/components/core-engine/chat-panel";
 import { ResizeHandle } from "@/components/core-engine/resize-handle";
 import { FlowCanvas } from "@/components/trade/flow-canvas";
+import { ExecuteButton } from "@/components/core-engine/execute-button";
 
 import { useConversations } from "@/hooks/use-conversations";
 import { useClaudeStream } from "@/hooks/use-claude-stream";
-import { generateFlowFromIntent } from "@/lib/lifi/flow-generator";
+import { usePhaseExecution } from "@/hooks/use-phase-execution";
+import {
+  generateFlowFromIntent,
+  generateFlowFromPhases,
+  updateNodeStatus,
+} from "@/lib/lifi/flow-generator";
+import { initializeLifiSDK } from "@/lib/lifi/sdk";
 import { SYSTEM_PROMPT } from "@/lib/core-engine/system-prompt";
 import {
   parseRouteFromResponse,
   parseRouteFromLogEntries,
+  isMultiPhase,
 } from "@/lib/core-engine/route-parser";
 
 import type { EngineState, LogEntry } from "@/lib/core-engine/types";
+import type { PhaseIntent, ParsedIntent, Address } from "@/lib/lifi/types";
 
 export default function CoreEnginePage() {
   const [engineState, setEngineState] = useState<EngineState>("idle");
   const [flowNodes, setFlowNodes] = useState<Node[]>([]);
   const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
   const [splitRatio, setSplitRatio] = useState(0.5);
+  const [phases, setPhases] = useState<PhaseIntent[]>([]);
+
+  // Wagmi wallet integration
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+  const { address } = useAccount();
+
+  // Initialize LI.FI SDK with wagmi wallet client
+  useEffect(() => {
+    if (walletClient) {
+      initializeLifiSDK(async () => walletClient);
+    }
+  }, [walletClient]);
+
+  // Phase execution hook
+  const handleNodeStatusUpdate = useCallback(
+    (phaseNum: number, status: string) => {
+      setFlowNodes((prevNodes) => {
+        // Update all nodes belonging to this phase
+        return prevNodes.map((node) => {
+          if (node.data?.phase === phaseNum && node.type !== "tokenInput" && node.type !== "output") {
+            return { ...node, data: { ...node.data, status } };
+          }
+          // Update divider nodes
+          if (node.type === "phaseDivider" && node.data?.fromPhase === phaseNum) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: status === "complete" ? "complete" : status === "executing" ? "waiting" : node.data.status,
+              },
+            };
+          }
+          return node;
+        });
+      });
+    },
+    []
+  );
+
+  const phaseExecution = usePhaseExecution(
+    phases,
+    walletClient ?? null,
+    publicClient ?? null,
+    (address as Address) ?? null,
+    handleNodeStatusUpdate
+  );
 
   const {
     conversations,
@@ -71,6 +128,34 @@ export default function CoreEnginePage() {
     [activeId, updateLogEntryStatus]
   );
 
+  /**
+   * Process a parsed route (single or multi-phase) into flow nodes and phases.
+   */
+  const applyRoute = useCallback(
+    (route: ParsedIntent | ReturnType<typeof parseRouteFromResponse>) => {
+      if (!route) return;
+
+      if (isMultiPhase(route)) {
+        // Multi-phase route
+        setPhases(route.phases);
+        const { nodes, edges } = generateFlowFromPhases(route.phases);
+        setFlowNodes(nodes);
+        setFlowEdges(edges);
+      } else {
+        // Single-phase route — wrap as single phase for execution
+        const singlePhase: PhaseIntent = { ...route, phase: 1 };
+        setPhases([singlePhase]);
+        const { nodes, edges } = generateFlowFromIntent(route);
+        setFlowNodes(nodes);
+        setFlowEdges(edges);
+      }
+
+      // Reset execution state when route changes
+      phaseExecution.reset();
+    },
+    [phaseExecution]
+  );
+
   const handleComplete = useCallback(
     (text: string, _success: boolean) => {
       if (!activeId) return;
@@ -81,21 +166,17 @@ export default function CoreEnginePage() {
 
       // 1. Try to extract route from the AI's latest response text
       if (text) {
-        const intent = parseRouteFromResponse(text);
-        if (intent) {
-          const { nodes, edges } = generateFlowFromIntent(intent);
-          setFlowNodes(nodes);
-          setFlowEdges(edges);
+        const route = parseRouteFromResponse(text);
+        if (route) {
+          applyRoute(route);
         }
       }
 
       // 2. If no route in latest text, scan all AI text log entries
       if (!text && activeConversation) {
-        const intent = parseRouteFromLogEntries(activeConversation.logEntries);
-        if (intent) {
-          const { nodes, edges } = generateFlowFromIntent(intent);
-          setFlowNodes(nodes);
-          setFlowEdges(edges);
+        const route = parseRouteFromLogEntries(activeConversation.logEntries);
+        if (route) {
+          applyRoute(route);
         }
       }
 
@@ -113,7 +194,7 @@ export default function CoreEnginePage() {
         }
       }
     },
-    [activeId, activeConversation, addMessage, setTitle]
+    [activeId, activeConversation, addMessage, setTitle, applyRoute]
   );
 
   const { liveState, sendMessage } = useClaudeStream({
@@ -154,26 +235,40 @@ export default function CoreEnginePage() {
     createConversation();
     setFlowNodes([]);
     setFlowEdges([]);
-  }, [createConversation]);
+    setPhases([]);
+    phaseExecution.reset();
+  }, [createConversation, phaseExecution]);
 
   const handleSelectConversation = useCallback(
     (id: string) => {
       setActiveId(id);
       setFlowNodes([]);
       setFlowEdges([]);
+      setPhases([]);
+      phaseExecution.reset();
+
       const conv = conversations.find((c) => c.id === id);
       if (conv && conv.messages.length > 0) {
         setEngineState("active");
         // Re-extract route from AI responses in this conversation
-        const intent = parseRouteFromLogEntries(conv.logEntries);
-        if (intent) {
-          const { nodes, edges } = generateFlowFromIntent(intent);
-          setFlowNodes(nodes);
-          setFlowEdges(edges);
+        const route = parseRouteFromLogEntries(conv.logEntries);
+        if (route) {
+          if (isMultiPhase(route)) {
+            setPhases(route.phases);
+            const { nodes, edges } = generateFlowFromPhases(route.phases);
+            setFlowNodes(nodes);
+            setFlowEdges(edges);
+          } else {
+            const singlePhase: PhaseIntent = { ...route, phase: 1 };
+            setPhases([singlePhase]);
+            const { nodes, edges } = generateFlowFromIntent(route);
+            setFlowNodes(nodes);
+            setFlowEdges(edges);
+          }
         }
       }
     },
-    [setActiveId, conversations]
+    [setActiveId, conversations, phaseExecution]
   );
 
   const executionState = {
@@ -181,6 +276,8 @@ export default function CoreEnginePage() {
     currentStepId: null,
     logs: [],
   };
+
+  const showExecuteButton = phases.length > 0 && flowNodes.length > 0;
 
   // ---- IDLE STATE ----
   if (engineState === "idle") {
@@ -281,7 +378,19 @@ export default function CoreEnginePage() {
             onEdgesChange={setFlowEdges}
             onNodeClick={() => {}}
             executionState={executionState}
-          />
+          >
+            {showExecuteButton && (
+              <ExecuteButton
+                totalPhases={phaseExecution.totalPhases}
+                currentPhase={phaseExecution.currentPhase}
+                phaseStatus={phaseExecution.phaseStatus}
+                overallStatus={phaseExecution.overallStatus}
+                error={phaseExecution.error}
+                onExecute={phaseExecution.executeCurrentPhase}
+                disabled={!walletClient || !address}
+              />
+            )}
+          </FlowCanvas>
         </div>
 
         {/* Draggable divider */}

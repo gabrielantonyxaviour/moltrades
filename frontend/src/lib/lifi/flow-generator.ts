@@ -20,6 +20,44 @@ export interface FlowGenerationResult {
 }
 
 // =============================================================================
+// LOGO PATH HELPERS
+// =============================================================================
+
+function getChainLogo(chainName: string): string {
+  const map: Record<string, string> = {
+    Ethereum: "/chains/ethereum.png",
+    Base: "/chains/base.png",
+    Arbitrum: "/chains/arbitrum.png",
+    Optimism: "/chains/optimism.png",
+    Polygon: "/chains/polygon.png",
+    "BNB Chain": "/chains/bsc.png",
+    Avalanche: "/chains/avalanche.png",
+    Gnosis: "/chains/gnosis.png",
+    Linea: "/chains/linea.png",
+    Scroll: "/chains/scroll.png",
+  };
+  return map[chainName] || "/chains/ethereum.png";
+}
+
+function getProtocolLogo(protocolName: string): string {
+  const map: Record<string, string> = {
+    Aave: "/protocols/aave.png",
+    Compound: "/protocols/compound.png",
+    Morpho: "/protocols/morpho.png",
+    Moonwell: "/protocols/moonwell.png",
+    Seamless: "/protocols/seamless.png",
+    Ethena: "/protocols/ethena.png",
+    Lido: "/protocols/lido.png",
+    EtherFi: "/protocols/etherfi.png",
+    WETH: "/protocols/weth.png",
+  };
+  const key = Object.keys(map).find((k) =>
+    protocolName.toLowerCase().includes(k.toLowerCase())
+  );
+  return key ? map[key] : "/protocols/lifi.png";
+}
+
+// =============================================================================
 // MAIN FLOW GENERATOR
 // =============================================================================
 
@@ -31,6 +69,8 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
   const xGap = 300;
 
   // Input node
+  const fromChainName = getChainName(quote.action.fromChainId);
+  const toChainName = getChainName(quote.action.toChainId);
   const inputId = "input-1";
   nodes.push({
     id: inputId,
@@ -43,7 +83,8 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
       usdValue: quote.action.fromToken.priceUSD
         ? formatUsdValue(quote.action.fromAmount, quote.action.fromToken.decimals, quote.action.fromToken.priceUSD)
         : undefined,
-      chain: getChainName(quote.action.fromChainId),
+      chain: fromChainName,
+      chainLogo: getChainLogo(fromChainName),
       status: "idle",
     },
   });
@@ -83,9 +124,11 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
       type: "bridge",
       position: { x: xPosition, y: yPosition },
       data: {
-        label: `Bridge to ${getChainName(quote.action.toChainId)}`,
-        fromChain: getChainName(quote.action.fromChainId),
-        toChain: getChainName(quote.action.toChainId),
+        label: `Bridge to ${toChainName}`,
+        fromChain: fromChainName,
+        toChain: toChainName,
+        fromChainLogo: getChainLogo(fromChainName),
+        toChainLogo: getChainLogo(toChainName),
         provider: quote.toolDetails?.name || "LI.FI",
         estimatedTime: formatDuration(quote.estimate?.executionDuration || 0),
         fee: `~$${getTotalGasCostUSD(quote)}`,
@@ -108,13 +151,15 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
   // Check for contract calls (deposit operations)
   if (quote.contractCalls && quote.contractCalls.length > 0) {
     const depositId = "deposit-1";
+    const protocolName = extractProtocolName(quote);
     nodes.push({
       id: depositId,
       type: "deposit",
       position: { x: xPosition, y: yPosition },
       data: {
         label: "Deposit",
-        protocol: extractProtocolName(quote),
+        protocol: protocolName,
+        protocolLogo: getProtocolLogo(protocolName),
         token: quote.action.toToken.symbol,
         amount: formatTokenAmount(quote.estimate?.toAmount || "0", quote.action.toToken.decimals),
         receiveToken: extractOutputToken(quote),
@@ -147,7 +192,9 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
       usdValue: quote.action.toToken.priceUSD
         ? formatUsdValue(quote.estimate?.toAmount || "0", quote.action.toToken.decimals, quote.action.toToken.priceUSD)
         : undefined,
-      chain: getChainName(quote.action.toChainId),
+      chain: toChainName,
+      chainLogo: getChainLogo(toChainName),
+      gasCost: `~$${getTotalGasCostUSD(quote)}`,
       status: "idle",
     },
   });
@@ -185,16 +232,20 @@ function generateNodeFromStep(
 
   switch (stepType) {
     case "bridge":
-    case "cross":
+    case "cross": {
+      const fromChain = getChainName(step.action.fromChainId);
+      const toChain = getChainName(step.action.toChainId);
       return {
         node: {
           id: nodeId,
           type: "bridge",
           position: { x: xPosition, y: yPosition },
           data: {
-            label: `Bridge to ${getChainName(step.action.toChainId)}`,
-            fromChain: getChainName(step.action.fromChainId),
-            toChain: getChainName(step.action.toChainId),
+            label: `Bridge to ${toChain}`,
+            fromChain,
+            toChain,
+            fromChainLogo: getChainLogo(fromChain),
+            toChainLogo: getChainLogo(toChain),
             provider: step.toolDetails?.name || step.tool || "LI.FI",
             estimatedTime: formatDuration(step.estimate?.executionDuration || 0),
             fee: step.estimate?.feeCosts?.[0]
@@ -204,6 +255,7 @@ function generateNodeFromStep(
           },
         },
       };
+    }
 
     case "swap":
       return {
@@ -226,15 +278,17 @@ function generateNodeFromStep(
       };
 
     case "protocol":
-    case "custom":
+    case "custom": {
+      const proto = step.toolDetails?.name || step.tool || "Protocol";
       return {
         node: {
           id: nodeId,
           type: "deposit",
           position: { x: xPosition, y: yPosition },
           data: {
-            label: step.toolDetails?.name || "Protocol",
-            protocol: step.toolDetails?.name || step.tool || "Protocol",
+            label: proto,
+            protocol: proto,
+            protocolLogo: getProtocolLogo(proto),
             token: step.action.fromToken.symbol,
             amount: formatTokenAmount(step.action.fromAmount, step.action.fromToken.decimals),
             receiveToken: step.action.toToken.symbol,
@@ -242,6 +296,7 @@ function generateNodeFromStep(
           },
         },
       };
+    }
 
     default:
       return null;
@@ -259,6 +314,9 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
   const yPosition = 200;
   const xGap = 300;
 
+  const fromChain = intent.fromChain || "Ethereum";
+  const toChain = intent.toChain || intent.fromChain || "Ethereum";
+
   // Input node
   const inputId = "input-1";
   nodes.push({
@@ -269,7 +327,8 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
       label: "Starting Balance",
       token: intent.fromToken || "ETH",
       amount: intent.amount || "0",
-      chain: intent.fromChain || "Ethereum",
+      chain: fromChain,
+      chainLogo: getChainLogo(fromChain),
       status: "pending",
     },
   });
@@ -281,14 +340,17 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
   switch (intent.action) {
     case "bridge": {
       const bridgeId = "bridge-1";
+      const bTo = intent.toChain || "Base";
       nodes.push({
         id: bridgeId,
         type: "bridge",
         position: { x: xPosition, y: yPosition },
         data: {
-          label: `Bridge to ${intent.toChain || "Base"}`,
-          fromChain: intent.fromChain || "Ethereum",
-          toChain: intent.toChain || "Base",
+          label: `Bridge to ${bTo}`,
+          fromChain,
+          toChain: bTo,
+          fromChainLogo: getChainLogo(fromChain),
+          toChainLogo: getChainLogo(bTo),
           provider: "LI.FI",
           estimatedTime: "~3 min",
           status: "pending",
@@ -333,13 +395,15 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
 
     case "deposit": {
       const depositId = "deposit-1";
+      const dProto = intent.protocol || "Aave";
       nodes.push({
         id: depositId,
         type: "deposit",
         position: { x: xPosition, y: yPosition },
         data: {
-          label: `Deposit to ${intent.protocol || "Aave"}`,
-          protocol: intent.protocol || "Aave",
+          label: `Deposit to ${dProto}`,
+          protocol: dProto,
+          protocolLogo: getProtocolLogo(dProto),
           token: intent.fromToken || "ETH",
           amount: intent.amount || "0",
           status: "pending",
@@ -359,14 +423,17 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
     case "complex": {
       // Bridge
       const bridgeId = "bridge-1";
+      const cTo = intent.toChain || "Base";
       nodes.push({
         id: bridgeId,
         type: "bridge",
         position: { x: xPosition, y: yPosition },
         data: {
-          label: `Bridge to ${intent.toChain || "Base"}`,
-          fromChain: intent.fromChain || "Ethereum",
-          toChain: intent.toChain || "Base",
+          label: `Bridge to ${cTo}`,
+          fromChain,
+          toChain: cTo,
+          fromChainLogo: getChainLogo(fromChain),
+          toChainLogo: getChainLogo(cTo),
           provider: "LI.FI",
           status: "pending",
         },
@@ -382,13 +449,15 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
 
       // Deposit
       const depositId = "deposit-1";
+      const cProto = intent.protocol || "Aave";
       nodes.push({
         id: depositId,
         type: "deposit",
         position: { x: xPosition, y: yPosition },
         data: {
-          label: `Deposit to ${intent.protocol || "Aave"}`,
-          protocol: intent.protocol || "Aave",
+          label: `Deposit to ${cProto}`,
+          protocol: cProto,
+          protocolLogo: getProtocolLogo(cProto),
           token: intent.fromToken || "ETH",
           status: "pending",
         },
@@ -407,6 +476,7 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
 
   // Output node
   const outputId = "output-1";
+  const outChain = intent.toChain || intent.fromChain || "Ethereum";
   nodes.push({
     id: outputId,
     type: "output",
@@ -414,7 +484,8 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
     data: {
       label: "Final Balance",
       token: getOutputToken(intent),
-      chain: intent.toChain || intent.fromChain || "Ethereum",
+      chain: outChain,
+      chainLogo: getChainLogo(outChain),
       status: "pending",
     },
   });

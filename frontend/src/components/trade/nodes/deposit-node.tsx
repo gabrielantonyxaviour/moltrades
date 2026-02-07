@@ -3,11 +3,13 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { cn } from "@/lib/utils";
-import { Landmark, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 interface DepositNodeData {
   label: string;
   protocol: string;
+  protocolLogo?: string;
   token: string;
   amount?: string;
   apy?: string;
@@ -36,13 +38,16 @@ export const DepositNode = memo(function DepositNode({
 
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-            <Landmark className="w-4 h-4 text-accent" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Deposit</p>
-            <p className="text-sm font-bold">{data.label}</p>
-          </div>
+          {data.protocolLogo && (
+            <Image
+              src={data.protocolLogo}
+              alt={data.protocol}
+              width={20}
+              height={20}
+              className="rounded-full"
+            />
+          )}
+          <span className="text-sm font-bold">{data.protocol}</span>
         </div>
         {data.status === "executing" && (
           <Loader2 className="w-4 h-4 text-primary animate-spin" />
@@ -52,22 +57,18 @@ export const DepositNode = memo(function DepositNode({
         )}
       </div>
 
-      <div className="bg-secondary rounded-md p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">{data.amount} {data.token}</span>
-        </div>
-        {data.apy && (
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">APY</span>
-            <span className="text-sm font-bold text-accent">{data.apy}</span>
-          </div>
-        )}
-      </div>
+      <p className="text-sm">
+        Supply {data.amount} {data.token}
+      </p>
 
       {data.receiveToken && (
-        <p className="text-xs text-muted-foreground mt-2">
-          Receive: {data.receiveToken}
+        <p className="text-xs text-muted-foreground mt-1">
+          → Receive {data.receiveToken}
         </p>
+      )}
+
+      {data.apy && (
+        <p className="text-xs text-accent font-bold mt-1">APY {data.apy}</p>
       )}
 
       <Handle

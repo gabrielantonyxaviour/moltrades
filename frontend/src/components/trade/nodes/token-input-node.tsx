@@ -3,13 +3,14 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { cn } from "@/lib/utils";
-import { Wallet } from "lucide-react";
+import Image from "next/image";
 
 interface TokenInputNodeData {
   label: string;
   token: string;
   amount: string;
   chain: string;
+  chainLogo?: string;
   usdValue?: string;
   status?: "idle" | "executing" | "complete" | "error";
 }
@@ -27,26 +28,26 @@ export const TokenInputNode = memo(function TokenInputNode({
         data.status === "complete" && "border-accent"
       )}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-          <Wallet className="w-4 h-4 text-primary" />
-        </div>
-        <div>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase">Input</p>
-          <p className="text-sm font-bold">{data.label}</p>
-        </div>
+      <div className="flex items-center gap-1.5 mb-3">
+        {data.chainLogo && (
+          <Image
+            src={data.chainLogo}
+            alt={data.chain}
+            width={16}
+            height={16}
+            className="rounded-full"
+          />
+        )}
+        <span className="text-xs text-muted-foreground">{data.chain}</span>
       </div>
 
-      <div className="space-y-2">
-        <div className="bg-secondary rounded-md p-2">
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold">{data.amount} {data.token}</span>
-          </div>
-          {data.usdValue && (
-            <p className="text-xs text-muted-foreground">≈ ${data.usdValue}</p>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">on {data.chain}</p>
+      <div className="space-y-1">
+        <p className="text-lg font-bold">
+          {data.amount} {data.token}
+        </p>
+        {data.usdValue && (
+          <p className="text-xs text-muted-foreground">{data.usdValue}</p>
+        )}
       </div>
 
       <Handle

@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { cn } from "@/lib/utils";
-import { ArrowDownUp, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 interface SwapNodeData {
   label: string;
@@ -37,10 +37,9 @@ export const SwapNode = memo(function SwapNode({
       />
 
       <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase">Swap</p>
-          <p className="text-sm font-bold">{data.label}</p>
-        </div>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+          Swap
+        </p>
         {data.status === "executing" && (
           <Loader2 className="w-4 h-4 text-primary animate-spin" />
         )}
@@ -49,29 +48,16 @@ export const SwapNode = memo(function SwapNode({
         )}
       </div>
 
-      <div className="bg-secondary rounded-md p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-bold">{data.fromAmount || ""} {data.fromToken}</span>
-        </div>
-        <div className="flex justify-center">
-          <ArrowDownUp className="w-4 h-4 text-muted-foreground" />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-bold">{data.toAmount || ""} {data.toToken}</span>
-        </div>
-      </div>
+      <p className="text-sm font-bold mb-2">
+        {data.fromAmount || ""} {data.fromToken} → {data.toAmount || ""}{" "}
+        {data.toToken}
+      </p>
 
-      <div className="mt-3 text-xs text-muted-foreground">
-        <div className="flex justify-between">
-          <span>via {data.dex}</span>
-        </div>
-        {data.rate && (
-          <p className="mt-1">Rate: {data.rate}</p>
-        )}
-        {data.priceImpact && (
-          <p>Impact: {data.priceImpact}</p>
-        )}
-      </div>
+      <p className="text-xs text-muted-foreground">via {data.dex}</p>
+
+      {data.rate && (
+        <p className="text-xs text-muted-foreground mt-1">{data.rate}</p>
+      )}
 
       <Handle
         type="source"

@@ -10,6 +10,7 @@ export const CHAIN_IDS = {
   OPTIMISM: 10,
   BSC: 56,
   GNOSIS: 100,
+  UNICHAIN: 130,
   POLYGON: 137,
   BASE: 8453,
   ARBITRUM: 42161,
@@ -18,10 +19,28 @@ export const CHAIN_IDS = {
   SCROLL: 534352,
 } as const;
 
+// Unichain Mainnet Contract Addresses
+export const UNICHAIN_CONTRACTS = {
+  // Uniswap v4 Core
+  POOL_MANAGER: '0x1f98400000000000000000000000000000000004' as const,
+  POSITION_MANAGER: '0x4529a01c7a0410167c5740c487a8de60232617bf' as const,
+  QUOTER: '0x333e3c607b141b18ff6de9f258db6e77fe7491e0' as const,
+  STATE_VIEW: '0x86e8631a016f9068c3f085faf484ee3f5fdee8f2' as const,
+  UNIVERSAL_ROUTER: '0xef740bf23acae26f6492b10de645d6b98dc8eaf3' as const,
+  PERMIT2: '0x000000000022d473030f116ddee9f6b43ac78ba3' as const,
+  // Tokens
+  WETH: '0x4200000000000000000000000000000000000006' as const,
+  USDC: '0x078d782b760474a361dda0af3839290b0ef57ad6' as const,
+  USDT: '0x9151434b16b9763660705744891fa906f660ecc5' as const,
+  UNI: '0x8f187aA05619a017077f5308904739877ce9eA21' as const,
+  WSTETH: '0xc02fE7317D4eb8753a02c35fe019786854A92001' as const,
+  USDS: '0x7E10036Acc4B56d4dFCa3b77810356CE52313F9C' as const,
+} as const;
+
 export interface ProtocolInfo {
   id: string;
   name: string;
-  type: 'lending' | 'staking' | 'vault' | 'liquid-staking' | 'dex' | 'wrap';
+  type: 'lending' | 'staking' | 'vault' | 'liquid-staking' | 'dex' | 'wrap' | 'swap';
   chains: ChainId[];
   description: string;
 }
@@ -64,7 +83,8 @@ const WETH_ABI = parseAbi([
 ]);
 
 export const PROTOCOLS: ProtocolInfo[] = [
-  { id: 'weth-wrap', name: 'WETH Wrap', type: 'wrap', chains: [1, 42161, 8453, 10, 137, 59144, 534352, 100], description: 'Wrap ETH to WETH' },
+  { id: 'uniswap-v4', name: 'Uniswap V4', type: 'swap', chains: [130], description: 'Swap tokens via Uniswap V4 on Unichain' },
+  { id: 'weth-wrap', name: 'WETH Wrap', type: 'wrap', chains: [1, 42161, 8453, 10, 137, 59144, 534352, 100, 130], description: 'Wrap ETH to WETH' },
   { id: 'lido-wsteth', name: 'Lido wstETH', type: 'liquid-staking', chains: [1], description: 'Wrap stETH to wstETH' },
   { id: 'etherfi-weeth', name: 'EtherFi weETH', type: 'liquid-staking', chains: [1], description: 'Wrap eETH to weETH' },
   { id: 'aave-v3-weth', name: 'Aave V3 WETH', type: 'lending', chains: [1, 42161, 8453, 10, 137, 56, 43114, 534352, 100], description: 'Supply WETH to Aave V3' },
@@ -90,6 +110,7 @@ export const DEPLOYMENTS: ProtocolDeployment[] = [
   { protocolId: 'weth-wrap', chainId: 10, depositContract: '0x4200000000000000000000000000000000000006' as Address, depositFunction: 'deposit()', inputToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as Address, inputTokenSymbol: 'ETH', outputToken: '0x4200000000000000000000000000000000000006' as Address, outputTokenSymbol: 'WETH', gasLimit: '50000', requiresApproval: false },
   { protocolId: 'weth-wrap', chainId: 59144, depositContract: '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f' as Address, depositFunction: 'deposit()', inputToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as Address, inputTokenSymbol: 'ETH', outputToken: '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f' as Address, outputTokenSymbol: 'WETH', gasLimit: '50000', requiresApproval: false },
   { protocolId: 'weth-wrap', chainId: 534352, depositContract: '0x5300000000000000000000000000000000000004' as Address, depositFunction: 'deposit()', inputToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as Address, inputTokenSymbol: 'ETH', outputToken: '0x5300000000000000000000000000000000000004' as Address, outputTokenSymbol: 'WETH', gasLimit: '50000', requiresApproval: false },
+  { protocolId: 'weth-wrap', chainId: 130, depositContract: '0x4200000000000000000000000000000000000006' as Address, depositFunction: 'deposit()', inputToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as Address, inputTokenSymbol: 'ETH', outputToken: '0x4200000000000000000000000000000000000006' as Address, outputTokenSymbol: 'WETH', gasLimit: '50000', requiresApproval: false },
 
   // AAVE V3 WETH
   { protocolId: 'aave-v3-weth', chainId: 1, depositContract: '0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2' as Address, depositFunction: 'supply(address,uint256,address,uint16)', inputToken: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' as Address, inputTokenSymbol: 'WETH', outputToken: '0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8' as Address, outputTokenSymbol: 'aEthWETH', gasLimit: '300000', requiresApproval: true },

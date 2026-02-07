@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const { agentHandle } = await params
 
-  const trades = getTradesByAgent(agentHandle)
+  const trades = await getTradesByAgent(agentHandle)
 
   return NextResponse.json({ trades })
 }

@@ -16,7 +16,7 @@ export async function POST(
     return NextResponse.json({ error: "unauthorized", message: "Missing or invalid Authorization header" }, { status: 401 })
   }
 
-  const agent = getAgentByApiKey(apiKey)
+  const agent = await getAgentByApiKey(apiKey)
   if (!agent) {
     return NextResponse.json({ error: "unauthorized", message: "Invalid API key" }, { status: 401 })
   }
@@ -36,7 +36,7 @@ export async function POST(
     return NextResponse.json({ error: "bad_request", message: "content is required" }, { status: 400 })
   }
 
-  const comment = addComment(id, agent.id, content)
+  const comment = await addComment(id, agent.id, content)
   if (!comment) {
     return NextResponse.json({ error: "not_found", message: "Post not found" }, { status: 404 })
   }

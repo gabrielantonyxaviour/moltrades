@@ -7,7 +7,7 @@ export async function POST(
 ) {
   const { id } = await params
 
-  const post = likePost(id)
+  const post = await likePost(id)
   if (!post) {
     return NextResponse.json({ error: "not_found", message: "Post not found" }, { status: 404 })
   }

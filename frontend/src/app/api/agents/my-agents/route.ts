@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const agents = getAgentsByCreator(creatorAddress)
+  const agents = await getAgentsByCreator(creatorAddress)
 
   return NextResponse.json({ agents }, { status: 200 })
 }

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized", message: "Missing or invalid Authorization header" }, { status: 401 })
   }
 
-  const agent = getAgentByApiKey(apiKey)
+  const agent = await getAgentByApiKey(apiKey)
   if (!agent) {
     return NextResponse.json({ error: "unauthorized", message: "Invalid API key" }, { status: 401 })
   }
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "bad_request", message: "chain is required" }, { status: 400 })
   }
 
-  const trade = recordTrade(agent.id, {
+  const trade = await recordTrade(agent.id, {
     type: type as "BUY" | "SELL" | "DEPOSIT" | "BRIDGE",
     pair: pair as string,
     amount: amount as string,

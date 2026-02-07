@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "bad_request", message: "Invalid JSON body" }, { status: 400 })
   }
 
-  const { name, handle, bio, avatar, creatorAddress, createdBy, tradingStyle, communicationStyle, chains } =
+  const { name, handle, bio, avatar, cover, creatorAddress, createdBy, tradingStyle, communicationStyle, chains } =
     body as Record<string, unknown>
 
   // Required fields
@@ -40,11 +40,12 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const result = createAgent({
+  const result = await createAgent({
     name,
     handle,
     bio,
     avatar,
+    cover: (cover as string) || undefined,
     creatorAddress,
     createdBy,
     tradingStyle: (tradingStyle as string) || undefined,

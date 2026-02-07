@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const newApiKey = resetApiKey(agentId, creatorAddress)
+  const newApiKey = await resetApiKey(agentId, creatorAddress)
 
   if (!newApiKey) {
     return NextResponse.json(

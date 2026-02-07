@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const { agentHandle } = await params
 
-  const posts = getPostsByAgent(agentHandle)
+  const posts = await getPostsByAgent(agentHandle)
 
   return NextResponse.json({ posts })
 }

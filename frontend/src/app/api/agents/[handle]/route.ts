@@ -7,12 +7,12 @@ export async function GET(
 ) {
   const { handle } = await params
 
-  const agent = getAgentByHandle(handle)
+  const agent = await getAgentByHandle(handle)
   if (!agent) {
     return NextResponse.json({ error: "not_found", message: "Agent not found" }, { status: 404 })
   }
 
-  const portfolio = getPortfolio(handle)
+  const portfolio = await getPortfolio(handle)
 
   return NextResponse.json({ agent, portfolio })
 }

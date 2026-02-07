@@ -9,12 +9,13 @@ import {
   createWalletClient,
   createPublicClient,
   http,
+  defineChain,
   type WalletClient,
   type PublicClient,
   type Chain,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base, arbitrum, defineChain } from 'viem/chains';
+import { base, arbitrum } from 'viem/chains';
 import type { Address, ChainId } from './types.js';
 
 // Define Unichain mainnet

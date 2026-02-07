@@ -5,15 +5,45 @@
  * on Unichain mainnet (chainId: 130).
  */
 
-import { encodeFunctionData, parseAbi, formatUnits, parseUnits, type Address } from 'viem';
+import { encodeFunctionData, decodeFunctionResult, parseAbi, formatUnits, parseUnits, type Address } from 'viem';
 import { UNICHAIN_CONTRACTS, CHAIN_IDS } from './protocols.js';
 import { walletClient, publicClient } from './config.js';
 
-// Uniswap V4 Quoter ABI (simplified for quoteExactInputSingle)
-const QUOTER_ABI = parseAbi([
-  'function quoteExactInputSingle((address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)',
-  'function quoteExactOutputSingle((address tokenIn, address tokenOut, uint256 amount, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountIn, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)',
-]);
+// Uniswap V4 Quoter ABI
+// V4 uses a struct-based approach with PoolKey and QuoteExactSingleParams
+const QUOTER_ABI = [
+  {
+    name: 'quoteExactInputSingle',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      {
+        name: 'params',
+        type: 'tuple',
+        components: [
+          {
+            name: 'poolKey',
+            type: 'tuple',
+            components: [
+              { name: 'currency0', type: 'address' },
+              { name: 'currency1', type: 'address' },
+              { name: 'fee', type: 'uint24' },
+              { name: 'tickSpacing', type: 'int24' },
+              { name: 'hooks', type: 'address' },
+            ],
+          },
+          { name: 'zeroForOne', type: 'bool' },
+          { name: 'exactAmount', type: 'uint128' },
+          { name: 'hookData', type: 'bytes' },
+        ],
+      },
+    ],
+    outputs: [
+      { name: 'amountOut', type: 'uint256' },
+      { name: 'gasEstimate', type: 'uint256' },
+    ],
+  },
+] as const;
 
 // Universal Router command encoding
 const UNIVERSAL_ROUTER_ABI = parseAbi([
@@ -89,6 +119,17 @@ async function getTokenInfo(tokenAddress: Address): Promise<{ symbol: string; de
   return { symbol, decimals };
 }
 
+// Common tick spacings for different fee tiers
+const FEE_TO_TICK_SPACING: Record<number, number> = {
+  100: 1,     // 0.01%
+  500: 10,    // 0.05%
+  3000: 60,   // 0.3%
+  10000: 200, // 1%
+};
+
+// Zero address for no hooks
+const ZERO_HOOKS = '0x0000000000000000000000000000000000000000' as Address;
+
 /**
  * Get a quote for a Uniswap V4 swap on Unichain
  */
@@ -109,44 +150,115 @@ export async function getSwapQuote(
   // Parse amount with correct decimals
   const amountInWei = parseUnits(amountIn, tokenInInfo.decimals);
 
-  // Call quoter to get expected output
+  // V4 requires sorted currencies (currency0 < currency1)
+  const tokenInLower = tokenIn.toLowerCase();
+  const tokenOutLower = tokenOut.toLowerCase();
+  const zeroForOne = tokenInLower < tokenOutLower;
+
+  // Create PoolKey with sorted currencies
+  const currency0 = zeroForOne ? tokenIn : tokenOut;
+  const currency1 = zeroForOne ? tokenOut : tokenIn;
+  const tickSpacing = FEE_TO_TICK_SPACING[fee] || 60;
+
+  // Build V4 QuoteExactSingleParams
   const quoteParams = {
-    tokenIn,
-    tokenOut,
-    amountIn: amountInWei,
-    fee,
-    sqrtPriceLimitX96: BigInt(0), // No price limit
+    poolKey: {
+      currency0,
+      currency1,
+      fee,
+      tickSpacing,
+      hooks: ZERO_HOOKS,
+    },
+    zeroForOne,
+    exactAmount: amountInWei,
+    hookData: '0x' as `0x${string}`,
   };
 
-  try {
-    const result = await client.readContract({
-      address: UNICHAIN_CONTRACTS.QUOTER as Address,
+  // Helper to try quoting with a specific fee tier
+  async function tryQuote(tryFee: number): Promise<{ amountOut: bigint; gasEstimate: bigint } | null> {
+    const tryTickSpacing = FEE_TO_TICK_SPACING[tryFee] || 60;
+    const params = {
+      poolKey: {
+        currency0,
+        currency1,
+        fee: tryFee,
+        tickSpacing: tryTickSpacing,
+        hooks: ZERO_HOOKS,
+      },
+      zeroForOne,
+      exactAmount: amountInWei,
+      hookData: '0x' as `0x${string}`,
+    };
+
+    // Encode the function call
+    const calldata = encodeFunctionData({
       abi: QUOTER_ABI,
       functionName: 'quoteExactInputSingle',
-      args: [quoteParams],
-    }) as [bigint, bigint, number, bigint];
+      args: [params],
+    });
 
-    const [amountOut, , , gasEstimate] = result;
+    try {
+      // Use eth_call to get the quote
+      const result = await client.call({
+        to: UNICHAIN_CONTRACTS.QUOTER as Address,
+        data: calldata,
+      });
 
-    return {
-      tokenIn,
-      tokenInSymbol: tokenInInfo.symbol,
-      tokenOut,
-      tokenOutSymbol: tokenOutInfo.symbol,
-      amountIn: amountInWei.toString(),
-      amountInFormatted: amountIn,
-      amountOut: amountOut.toString(),
-      amountOutFormatted: formatUnits(amountOut, tokenOutInfo.decimals),
-      fee,
-      priceImpact: '< 0.1%', // Simplified for now
-      gasEstimate: gasEstimate.toString(),
-      route: `${tokenInInfo.symbol} → ${tokenOutInfo.symbol} (Uniswap V4)`,
-    };
-  } catch (error) {
-    // If quoter fails, provide a simulated quote
-    console.error('Quoter call failed:', error);
-    throw new Error(`Failed to get quote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (result.data) {
+        // Decode the result
+        const decoded = decodeFunctionResult({
+          abi: QUOTER_ABI,
+          functionName: 'quoteExactInputSingle',
+          data: result.data,
+        }) as [bigint, bigint];
+
+        return { amountOut: decoded[0], gasEstimate: decoded[1] };
+      }
+    } catch (err) {
+      // V4 Quoter may revert with the result encoded in the error
+      const error = err as Error & { data?: string };
+      if (error.data && error.data.length > 2) {
+        try {
+          // Try to decode the revert data as the result
+          const decoded = decodeFunctionResult({
+            abi: QUOTER_ABI,
+            functionName: 'quoteExactInputSingle',
+            data: error.data as `0x${string}`,
+          }) as [bigint, bigint];
+
+          return { amountOut: decoded[0], gasEstimate: decoded[1] };
+        } catch {
+          // Not a valid result, continue
+        }
+      }
+    }
+    return null;
   }
+
+  // Try the requested fee tier first, then others
+  const feeTiersToTry = [fee, ...Object.keys(FEE_TO_TICK_SPACING).map(Number).filter(f => f !== fee)];
+
+  for (const tryFee of feeTiersToTry) {
+    const result = await tryQuote(tryFee);
+    if (result && result.amountOut > 0n) {
+      return {
+        tokenIn,
+        tokenInSymbol: tokenInInfo.symbol,
+        tokenOut,
+        tokenOutSymbol: tokenOutInfo.symbol,
+        amountIn: amountInWei.toString(),
+        amountInFormatted: amountIn,
+        amountOut: result.amountOut.toString(),
+        amountOutFormatted: formatUnits(result.amountOut, tokenOutInfo.decimals),
+        fee: tryFee,
+        priceImpact: '< 0.1%',
+        gasEstimate: result.gasEstimate.toString(),
+        route: `${tokenInInfo.symbol} → ${tokenOutInfo.symbol} (Uniswap V4, ${(tryFee/10000).toFixed(2)}% fee)`,
+      };
+    }
+  }
+
+  throw new Error(`No liquidity pool found for ${tokenInInfo.symbol}/${tokenOutInfo.symbol}. The pool may not exist or has no liquidity on Unichain.`);
 }
 
 /**
@@ -161,6 +273,10 @@ export async function executeSwap(
 ): Promise<SwapResult> {
   const client = publicClient(CHAIN_IDS.UNICHAIN);
   const wallet = walletClient(CHAIN_IDS.UNICHAIN);
+
+  if (!wallet.account) {
+    throw new Error('Wallet account not initialized');
+  }
   const userAddress = wallet.account.address;
 
   try {
@@ -188,6 +304,8 @@ export async function executeSwap(
         });
 
         const approveTxHash = await wallet.sendTransaction({
+          account: wallet.account,
+          chain: wallet.chain,
           to: tokenIn,
           data: approveData,
         });
@@ -218,6 +336,8 @@ export async function executeSwap(
 
     // Execute the swap
     const txHash = await wallet.sendTransaction({
+      account: wallet.account,
+      chain: wallet.chain,
       to: UNICHAIN_CONTRACTS.UNIVERSAL_ROUTER as Address,
       data: swapData,
       value: isNativeETH ? amountInWei : BigInt(0),

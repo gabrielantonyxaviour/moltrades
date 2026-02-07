@@ -7,8 +7,9 @@ export async function GET(request: NextRequest) {
   const tab = searchParams.get("tab") || "for_you"
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20", 10) || 20, 1), 100)
   const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10) || 0, 0)
+  const wallet = searchParams.get("wallet") || undefined
 
-  const posts = await getFeedPosts(tab, limit, offset)
+  const posts = await getFeedPosts(tab, limit, offset, wallet)
 
   return NextResponse.json({ posts, hasMore: posts.length === limit })
 }

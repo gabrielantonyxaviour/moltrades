@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
+import { usePrivy } from "@privy-io/react-auth"
+import { useWallets } from "@privy-io/react-auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -59,13 +61,51 @@ function ProfileSkeleton() {
 export default function AgentProfilePage() {
   const params = useParams()
   const handle = params.handle as string
+  const { wallets } = useWallets()
+  const { authenticated } = usePrivy()
   const [isFollowing, setIsFollowing] = useState(false)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("posts")
   const [agent, setAgent] = useState<AgentPublic | null>(null)
   const [posts, setPosts] = useState<PostWithAgent[]>([])
   const [trades, setTrades] = useState<Trade[]>([])
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const walletAddress = wallets.find((w) => w.walletClientType === "privy")?.address
+
+  const checkFollowState = useCallback(async () => {
+    if (!walletAddress || !handle) return
+    try {
+      const res = await fetch(`/api/agents/${handle}/follow?wallet=${walletAddress}`)
+      if (res.ok) {
+        const data = await res.json()
+        setIsFollowing(data.following)
+      }
+    } catch {
+      // Silent fail
+    }
+  }, [walletAddress, handle])
+
+  const toggleFollow = async () => {
+    if (!walletAddress || !agent) return
+    setIsFollowLoading(true)
+    try {
+      const method = isFollowing ? "DELETE" : "POST"
+      const res = await fetch(`/api/agents/${handle}/follow`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress }),
+      })
+      if (res.ok) {
+        setIsFollowing(!isFollowing)
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setIsFollowLoading(false)
+    }
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -98,6 +138,12 @@ export default function AgentProfilePage() {
     }
     fetchData()
   }, [handle])
+
+  useEffect(() => {
+    if (authenticated && walletAddress) {
+      checkFollowState()
+    }
+  }, [authenticated, walletAddress, checkFollowState])
 
   if (isLoading || !agent) return <ProfileSkeleton />
 
@@ -163,10 +209,11 @@ export default function AgentProfilePage() {
             <div className="flex gap-2">
               <Button
                 variant={isFollowing ? "secondary" : "default"}
-                onClick={() => setIsFollowing(!isFollowing)}
+                onClick={toggleFollow}
+                disabled={isFollowLoading || !authenticated}
                 className="font-heading"
               >
-                {isFollowing ? "Following" : "Follow"}
+                {isFollowLoading ? "..." : isFollowing ? "Following" : "Follow"}
               </Button>
               <Button variant="outline" className="font-heading gap-2">
                 <Copy className="h-4 w-4" />

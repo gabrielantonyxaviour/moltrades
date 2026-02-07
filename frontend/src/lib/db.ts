@@ -267,8 +267,30 @@ export async function resetApiKey(agentId: string, creatorAddress: string): Prom
 // POST QUERIES
 // =============================================================================
 
-export async function getFeedPosts(tab: string = "for_you", limit: number = 20, offset: number = 0): Promise<PostWithAgent[]> {
-  if (tab === "following") return []
+export async function getFeedPosts(tab: string = "for_you", limit: number = 20, offset: number = 0, walletAddress?: string): Promise<PostWithAgent[]> {
+  if (tab === "following") {
+    if (!walletAddress) return []
+    const followedIds = await getFollowedAgentIds(walletAddress)
+    if (followedIds.length === 0) return []
+
+    const { data, error } = await supabase
+      .from("moltrades_posts")
+      .select("*, moltrades_agents!agent_id(*)")
+      .in("agent_id", followedIds)
+      .order("timestamp", { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (error || !data) return []
+
+    return data.map((row) => {
+      const post = mapPostRow(row)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const agentData = (row as any).moltrades_agents
+      if (!agentData) return null
+      const agent = toPublicAgent(mapAgentRow(agentData))
+      return { ...post, agent }
+    }).filter((p): p is PostWithAgent => p !== null)
+  }
 
   let query = supabase
     .from("moltrades_posts")
@@ -503,6 +525,159 @@ export async function getPortfolio(agentHandle: string): Promise<Portfolio | nul
 
   if (error || !data) return null
   return mapPortfolioRow(data)
+}
+
+// =============================================================================
+// NETWORK STATS
+// =============================================================================
+
+// =============================================================================
+// FOLLOW QUERIES
+// =============================================================================
+
+export async function followAgent(walletAddress: string, agentId: string): Promise<boolean> {
+  const id = generateId("follow")
+  const { error } = await supabase.from("moltrades_follows").insert({
+    id,
+    wallet_address: walletAddress.toLowerCase(),
+    agent_id: agentId,
+  })
+
+  if (error) return false
+
+  await supabase.rpc("moltrades_update_followers", { p_agent_id: agentId, p_delta: 1 })
+  return true
+}
+
+export async function unfollowAgent(walletAddress: string, agentId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("moltrades_follows")
+    .delete()
+    .eq("wallet_address", walletAddress.toLowerCase())
+    .eq("agent_id", agentId)
+
+  if (error) return false
+
+  await supabase.rpc("moltrades_update_followers", { p_agent_id: agentId, p_delta: -1 })
+  return true
+}
+
+export async function isFollowing(walletAddress: string, agentId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("moltrades_follows")
+    .select("id")
+    .eq("wallet_address", walletAddress.toLowerCase())
+    .eq("agent_id", agentId)
+    .single()
+
+  return !!data
+}
+
+export async function getFollowedAgentIds(walletAddress: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("moltrades_follows")
+    .select("agent_id")
+    .eq("wallet_address", walletAddress.toLowerCase())
+
+  if (error || !data) return []
+  return data.map((row) => row.agent_id)
+}
+
+// =============================================================================
+// TRUST SCORE
+// =============================================================================
+
+export async function updateTrustScore(agentId: string, delta: number): Promise<void> {
+  await supabase.rpc("moltrades_update_trust_score", { p_agent_id: agentId, p_delta: delta })
+}
+
+// =============================================================================
+// PORTFOLIO UPDATE
+// =============================================================================
+
+export async function updatePortfolio(
+  agentId: string,
+  tradeData: { type: string; pair: string; amount: string; price: string; chain: string }
+): Promise<void> {
+  // Parse the pair (e.g. "ETH/USDC")
+  const [tokenA, tokenB] = tradeData.pair.split("/")
+  if (!tokenA || !tokenB) return
+
+  // Fetch current portfolio
+  const { data: existing } = await supabase
+    .from("moltrades_portfolios")
+    .select("*")
+    .eq("agent_id", agentId)
+    .single()
+
+  const holdings: Array<{
+    token: string
+    symbol: string
+    amount: string
+    value: string
+    change: string
+    allocation: number
+  }> = existing?.holdings || []
+
+  // Determine what token was acquired based on trade type
+  let acquiredToken = ""
+  let acquiredAmount = tradeData.amount
+
+  if (tradeData.type === "BUY" || tradeData.type === "DEPOSIT") {
+    acquiredToken = tokenB || tokenA
+  } else if (tradeData.type === "SELL") {
+    acquiredToken = tokenA
+  } else if (tradeData.type === "BRIDGE") {
+    acquiredToken = tokenB || tokenA
+  }
+
+  if (!acquiredToken) return
+
+  // Find existing holding or create new
+  const existingIdx = holdings.findIndex(
+    (h) => h.token.toUpperCase() === acquiredToken.toUpperCase()
+  )
+
+  if (existingIdx >= 0) {
+    // Update existing holding amount
+    const current = parseFloat(holdings[existingIdx].amount) || 0
+    const added = parseFloat(acquiredAmount) || 0
+    holdings[existingIdx].amount = (current + added).toFixed(6)
+    holdings[existingIdx].value = `$${((current + added) * (parseFloat(tradeData.price) || 0)).toFixed(2)}`
+    holdings[existingIdx].change = "+0.0%"
+  } else {
+    // Add new holding
+    const numAmount = parseFloat(acquiredAmount) || 0
+    const numPrice = parseFloat(tradeData.price) || 0
+    holdings.push({
+      token: acquiredToken,
+      symbol: acquiredToken.substring(0, 4).toUpperCase(),
+      amount: numAmount.toFixed(6),
+      value: `$${(numAmount * numPrice).toFixed(2)}`,
+      change: "+0.0%",
+      allocation: 0,
+    })
+  }
+
+  // Recalculate allocations
+  const totalValue = holdings.reduce((sum, h) => {
+    const val = parseFloat(h.value.replace("$", "").replace(",", "")) || 0
+    return sum + val
+  }, 0)
+
+  for (const h of holdings) {
+    const val = parseFloat(h.value.replace("$", "").replace(",", "")) || 0
+    h.allocation = totalValue > 0 ? Math.round((val / totalValue) * 100) : 0
+  }
+
+  await supabase
+    .from("moltrades_portfolios")
+    .update({
+      holdings,
+      total_value: `$${totalValue.toFixed(2)}`,
+      total_value_eth: `${(totalValue / 3500).toFixed(4)} ETH`,
+    })
+    .eq("agent_id", agentId)
 }
 
 // =============================================================================

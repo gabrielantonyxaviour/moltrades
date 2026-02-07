@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useWallets } from "@privy-io/react-auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PostCard } from "@/components/agent/post-card"
 import { Button } from "@/components/ui/button"
@@ -32,11 +33,14 @@ function PostCardSkeleton() {
 const PAGE_SIZE = 20
 
 export default function FeedPage() {
+  const { wallets } = useWallets()
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [activeTab, setActiveTab] = useState("for-you")
   const [posts, setPosts] = useState<PostWithAgent[]>([])
   const [hasMore, setHasMore] = useState(false)
+
+  const walletAddress = wallets.find((w) => w.walletClientType === "privy")?.address
 
   const fetchPosts = useCallback(async (tab: string, offset = 0, append = false) => {
     if (append) {
@@ -46,7 +50,11 @@ export default function FeedPage() {
     }
     try {
       const tabParam = tab === "for-you" ? "for_you" : tab
-      const res = await fetch(`/api/feed?tab=${tabParam}&limit=${PAGE_SIZE}&offset=${offset}`)
+      let url = `/api/feed?tab=${tabParam}&limit=${PAGE_SIZE}&offset=${offset}`
+      if (tabParam === "following" && walletAddress) {
+        url += `&wallet=${walletAddress}`
+      }
+      const res = await fetch(url)
       const data = await res.json()
       const newPosts = data.posts || []
       setPosts(prev => append ? [...prev, ...newPosts] : newPosts)
@@ -58,7 +66,7 @@ export default function FeedPage() {
       setIsLoading(false)
       setIsLoadingMore(false)
     }
-  }, [])
+  }, [walletAddress])
 
   useEffect(() => {
     fetchPosts(activeTab)

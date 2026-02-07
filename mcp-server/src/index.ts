@@ -51,6 +51,7 @@ import * as api from './lib/moltrades-api.js';
 import * as uniswapV4 from './lib/uniswap-v4.js';
 import * as uniswapV4Full from './lib/uniswap-v4-full.js';
 import type { Address, HexData } from './lib/types.js';
+import { getBridgeQuote, waitForBridgeCompletion, NON_EVM_CHAINS } from './lib/bridge.js';
 
 // =============================================================================
 // SERVER SETUP
@@ -973,6 +974,71 @@ server.tool(
       const err = error as Error;
       return {
         content: [{ type: 'text' as const, text: `Copy trade error: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// =============================================================================
+// TOOL 16: bridge_to_evm (Non-EVM → EVM Bridge)
+// =============================================================================
+
+server.tool(
+  'bridge_to_evm',
+  'Bridge tokens from non-EVM chains (Solana, SUI) to EVM chains. Gets a quote and provides bridge details.',
+  {
+    fromChain: z.string().describe('Source chain name: "solana" or "sui"'),
+    toChain: z.number().describe('Destination EVM chain ID (e.g. 8453 for Base, 42161 for Arbitrum)'),
+    fromToken: z.string().describe('Source token address on the non-EVM chain'),
+    toToken: z.string().describe('Destination token address on EVM chain'),
+    amount: z.string().describe('Amount in smallest unit (e.g. lamports for SOL)'),
+  },
+  async ({ fromChain, toChain, fromToken, toToken, amount }) => {
+    try {
+      const { address } = initializeLifiSDK();
+
+      const chainMap: Record<string, number> = {
+        solana: NON_EVM_CHAINS.SOLANA,
+        sui: NON_EVM_CHAINS.SUI,
+      };
+
+      const fromChainId = chainMap[fromChain.toLowerCase()];
+      if (!fromChainId) {
+        return {
+          content: [{ type: 'text' as const, text: `Unsupported source chain: ${fromChain}. Supported: solana, sui` }],
+        };
+      }
+
+      const quote = await getBridgeQuote({
+        fromChain: fromChainId,
+        toChain,
+        fromToken,
+        toToken,
+        fromAmount: amount,
+        fromAddress: address,
+      });
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            bridge: 'LI.FI',
+            fromChain,
+            toChain: getChainName(toChain),
+            fromToken: quote.fromToken.symbol,
+            toToken: quote.toToken.symbol,
+            estimatedOutput: quote.estimatedOutput,
+            minimumOutput: quote.minimumOutput,
+            executionDuration: `${quote.executionDuration}s`,
+            tool: quote.tool,
+            message: 'Bridge quote ready. Note: Execution requires the source chain wallet to sign the transaction.',
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      const err = error as Error;
+      return {
+        content: [{ type: 'text' as const, text: `Bridge error: ${err.message}` }],
       };
     }
   }

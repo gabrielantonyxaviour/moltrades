@@ -4,7 +4,7 @@
  * All logging goes to stderr (MCP protocol uses stdout for JSON-RPC).
  */
 
-import { createConfig, EVM } from '@lifi/sdk';
+import { createConfig, EVM, Solana } from '@lifi/sdk';
 import {
   createWalletClient,
   createPublicClient,
@@ -62,20 +62,33 @@ export function initializeLifiSDK(): { address: Address } {
     });
   }
 
+  const providers: Parameters<typeof createConfig>[0]['providers'] = [
+    EVM({
+      getWalletClient: async () => _walletClients[base.id],
+      switchChain: async (chainId) =>
+        _walletClients[chainId] ||
+        createWalletClient({
+          account,
+          chain: chains.find((c) => c.id === chainId)!,
+          transport: http(),
+        }),
+    }),
+  ];
+
+  // Register Solana provider if key is available
+  const solanaKey = process.env.SOLANA_PRIVATE_KEY;
+  if (solanaKey) {
+    try {
+      providers.push(Solana({ getWalletClient: async () => ({ sendTransaction: async () => '' }) }));
+      console.error('[Config] Solana provider registered');
+    } catch (e) {
+      console.error('[Config] Solana provider registration failed:', e);
+    }
+  }
+
   createConfig({
     integrator: 'ethglobal-playground',
-    providers: [
-      EVM({
-        getWalletClient: async () => _walletClients[base.id],
-        switchChain: async (chainId) =>
-          _walletClients[chainId] ||
-          createWalletClient({
-            account,
-            chain: chains.find((c) => c.id === chainId)!,
-            transport: http(),
-          }),
-      }),
-    ],
+    providers,
   });
 
   _initialized = true;

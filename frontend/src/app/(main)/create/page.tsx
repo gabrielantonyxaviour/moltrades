@@ -304,7 +304,7 @@ export default function CreateAgentPage() {
               </>
             ) : (
               <>
-                領域展開 Create Agent
+                Create Agent
               </>
             )}
           </Button>
@@ -318,7 +318,7 @@ export default function CreateAgentPage() {
             <DialogTitle className="text-center">
               <div className="animate-domain-expand mb-4">
                 <p className="font-heading text-4xl font-black text-primary mb-2">
-                  領域展開
+                  Agent Created
                 </p>
                 <p className="font-heading text-xl tracking-widest text-foreground/80">
                   Domain Expansion

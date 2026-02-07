@@ -26,6 +26,13 @@ const CHAIN_NAME_TO_ID: Record<string, ChainId> = {
   matic: CHAIN_IDS.POLYGON,
   bsc: CHAIN_IDS.BSC,
   bnb: CHAIN_IDS.BSC,
+  "bnb chain": CHAIN_IDS.BSC,
+  unichain: CHAIN_IDS.UNICHAIN,
+  gnosis: CHAIN_IDS.GNOSIS,
+  avalanche: CHAIN_IDS.AVALANCHE,
+  avax: CHAIN_IDS.AVALANCHE,
+  linea: CHAIN_IDS.LINEA,
+  scroll: CHAIN_IDS.SCROLL,
 };
 
 export function getChainId(chainName: string): ChainId | undefined {

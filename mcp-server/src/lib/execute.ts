@@ -191,12 +191,15 @@ export function buildExplorerUrl(chainId: ChainId, txHash: HexData): string {
   const explorers: Record<ChainId, string> = {
     1: 'https://etherscan.io/tx/',
     10: 'https://optimistic.etherscan.io/tx/',
-    137: 'https://polygonscan.com/tx/',
-    42161: 'https://arbiscan.io/tx/',
-    8453: 'https://basescan.org/tx/',
     56: 'https://bscscan.com/tx/',
-    43114: 'https://snowtrace.io/tx/',
     100: 'https://gnosisscan.io/tx/',
+    130: 'https://uniscan.xyz/tx/',
+    137: 'https://polygonscan.com/tx/',
+    8453: 'https://basescan.org/tx/',
+    42161: 'https://arbiscan.io/tx/',
+    43114: 'https://snowtrace.io/tx/',
+    59144: 'https://lineascan.build/tx/',
+    534352: 'https://scrollscan.com/tx/',
   };
   const baseUrl = explorers[chainId] || 'https://blockscan.com/tx/';
   return `${baseUrl}${txHash}`;

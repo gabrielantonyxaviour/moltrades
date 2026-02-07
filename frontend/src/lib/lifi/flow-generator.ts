@@ -33,6 +33,7 @@ function getChainLogo(chainName: string): string {
     "BNB Chain": "/chains/bsc.png",
     Avalanche: "/chains/avalanche.png",
     Gnosis: "/chains/gnosis.png",
+    Unichain: "/chains/unichain.png",
     Linea: "/chains/linea.png",
     Scroll: "/chains/scroll.png",
   };

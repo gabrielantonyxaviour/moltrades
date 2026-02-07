@@ -161,8 +161,12 @@ server.tool(
       const deployment = getDeployment(protocolId, chainId);
 
       if (!deployment) {
+        const protocol = getProtocol(protocolId);
+        const availableChains = protocol
+          ? protocol.chains.map((c) => `${getChainName(c)} (${c})`).join(', ')
+          : 'unknown';
         return {
-          content: [{ type: 'text' as const, text: `Error: Protocol "${protocolId}" not deployed on chain ${chainId}. Use get_protocols to see available options.` }],
+          content: [{ type: 'text' as const, text: `Error: Protocol "${protocolId}" is not deployed on ${getChainName(chainId)} (${chainId}). Available chains for ${protocolId}: ${availableChains}. Use get_protocols to see all options.` }],
         };
       }
 
@@ -216,8 +220,15 @@ server.tool(
       };
     } catch (error) {
       const err = error as Error;
+      const msg = err.message;
+      let hint = '';
+      if (msg.includes('No wallet client') || msg.includes('No public client')) {
+        hint = ' The requested chain may not be supported. Use get_supported_chains to see available chains.';
+      } else if (msg.toLowerCase().includes('amount') || msg.toLowerCase().includes('insufficient')) {
+        hint = ' The amount may be too small or you may have insufficient balance.';
+      }
       return {
-        content: [{ type: 'text' as const, text: `Quote error: ${err.message}` }],
+        content: [{ type: 'text' as const, text: `Quote error: ${msg}${hint}` }],
       };
     }
   }
@@ -243,8 +254,12 @@ server.tool(
       const deployment = getDeployment(protocolId, chainId);
 
       if (!deployment) {
+        const protocol = getProtocol(protocolId);
+        const availableChains = protocol
+          ? protocol.chains.map((c) => `${getChainName(c)} (${c})`).join(', ')
+          : 'unknown';
         return {
-          content: [{ type: 'text' as const, text: `Error: Protocol "${protocolId}" not deployed on chain ${chainId}.` }],
+          content: [{ type: 'text' as const, text: `Error: Protocol "${protocolId}" is not deployed on ${getChainName(chainId)} (${chainId}). Available chains: ${availableChains}.` }],
         };
       }
 
@@ -322,8 +337,17 @@ server.tool(
       };
     } catch (error) {
       const err = error as Error;
+      const msg = err.message;
+      let hint = '';
+      if (msg.includes('No wallet client') || msg.includes('No public client')) {
+        hint = ' The requested chain may not be supported. Use get_supported_chains to see available chains.';
+      } else if (msg.toLowerCase().includes('insufficient') || msg.toLowerCase().includes('funds')) {
+        hint = ' You may have insufficient balance for this trade plus gas fees.';
+      } else if (msg.toLowerCase().includes('revert') || msg.toLowerCase().includes('execution reverted')) {
+        hint = ' The transaction reverted on-chain. The protocol may require different parameters or the amount may be invalid.';
+      }
       return {
-        content: [{ type: 'text' as const, text: `Execution error: ${err.message}` }],
+        content: [{ type: 'text' as const, text: `Execution error: ${msg}${hint}` }],
       };
     }
   }
@@ -892,8 +916,12 @@ server.tool(
       const deployment = getDeployment(protocolId, chainId);
 
       if (!deployment) {
+        const protocol = getProtocol(protocolId);
+        const availableChains = protocol
+          ? protocol.chains.map((c) => `${getChainName(c)} (${c})`).join(', ')
+          : 'unknown';
         return {
-          content: [{ type: 'text' as const, text: `Error: Protocol "${protocolId}" not deployed on chain ${chainId}.` }],
+          content: [{ type: 'text' as const, text: `Error: Protocol "${protocolId}" is not deployed on ${getChainName(chainId)} (${chainId}). Available chains: ${availableChains}.` }],
         };
       }
 

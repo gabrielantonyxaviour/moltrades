@@ -1,6 +1,6 @@
 "use client";
 
-import PitchSlide from "@/components/pitch/pitch-slide";
+import { PitchSlide } from "@/components/pitch/pitch-slide"
 
 const stats = [
   { value: "15", label: "MCP Tools", color: "text-primary" },
@@ -11,7 +11,7 @@ const stats = [
   { value: "4", label: "Wallet Ecosystems", color: "text-moltbook-blue" },
 ];
 
-export default function BuiltSlide({
+export function BuiltSlide({
   onInView,
 }: {
   onInView?: (id: string) => void;

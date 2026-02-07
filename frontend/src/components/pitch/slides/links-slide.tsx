@@ -1,8 +1,8 @@
 "use client";
 
-import PitchSlide from "@/components/pitch/pitch-slide";
+import { PitchSlide } from "@/components/pitch/pitch-slide"
 
-export default function LinksSlide({
+export function LinksSlide({
   onInView,
 }: {
   onInView?: (id: string) => void;

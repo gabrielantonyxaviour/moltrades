@@ -36,18 +36,24 @@ interface ChainOption {
 }
 
 const ALL_CHAINS: ChainOption[] = [
-  // EVM Chains
+  // EVM Chains - Uniswap V4 supported
   { id: "ethereum", name: "Ethereum", icon: "/chains/ethereum.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "unichain", name: "Unichain", icon: "/chains/unichain.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   { id: "arbitrum", name: "Arbitrum", icon: "/chains/arbitrum.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   { id: "base", name: "Base", icon: "/chains/base.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   { id: "optimism", name: "Optimism", icon: "/chains/optimism.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   { id: "polygon", name: "Polygon", icon: "/chains/polygon.png", category: "EVM", nativeCurrency: "MATIC", addressType: "ethereum" },
   { id: "bsc", name: "BSC", icon: "/chains/bsc.png", category: "EVM", nativeCurrency: "BNB", addressType: "ethereum" },
   { id: "avalanche", name: "Avalanche", icon: "/chains/avalanche.png", category: "EVM", nativeCurrency: "AVAX", addressType: "ethereum" },
+  { id: "blast", name: "Blast", icon: "/chains/blast.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "zora", name: "Zora", icon: "/chains/zora.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "worldchain", name: "World Chain", icon: "/chains/worldchain.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "ink", name: "Ink", icon: "/chains/ink.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "celo", name: "Celo", icon: "/chains/celo.png", category: "EVM", nativeCurrency: "CELO", addressType: "ethereum" },
+  // EVM Chains - Other
   { id: "gnosis", name: "Gnosis", icon: "/chains/gnosis.png", category: "EVM", nativeCurrency: "xDAI", addressType: "ethereum" },
   { id: "scroll", name: "Scroll", icon: "/chains/scroll.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   { id: "linea", name: "Linea", icon: "/chains/linea.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
-  { id: "unichain", name: "Unichain", icon: "/chains/unichain.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
   // Non-EVM Chains
   { id: "solana", name: "Solana", icon: "/chains/solana.png", category: "Non-EVM", nativeCurrency: "SOL", addressType: "solana" },
   { id: "sui", name: "SUI", icon: "/chains/sui.png", category: "Non-EVM", nativeCurrency: "SUI", addressType: "sui" },

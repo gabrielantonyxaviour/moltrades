@@ -638,6 +638,13 @@ const V4_ACTIONS = {
 
 /**
  * Encode ExactInputSingle params for V4 swap
+ *
+ * ExactInputSingleParams is a SINGLE tuple containing:
+ * - poolKey (nested tuple)
+ * - zeroForOne (bool)
+ * - amountIn (uint128)
+ * - amountOutMinimum (uint128)
+ * - hookData (bytes)
  */
 function encodeExactInputSingleParams(
   poolKey: PoolKey,
@@ -646,24 +653,16 @@ function encodeExactInputSingleParams(
   amountOutMinimum: bigint,
   hookData: `0x${string}` = '0x'
 ): `0x${string}` {
+  // Encode as a single tuple: ((address,address,uint24,int24,address),bool,uint128,uint128,bytes)
   return encodeAbiParameters(
-    parseAbiParameters([
-      '(address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks)',
-      'bool', 'uint128', 'uint128', 'bytes'
-    ]),
-    [
-      {
-        currency0: poolKey.currency0,
-        currency1: poolKey.currency1,
-        fee: poolKey.fee,
-        tickSpacing: poolKey.tickSpacing,
-        hooks: poolKey.hooks
-      },
+    parseAbiParameters('((address,address,uint24,int24,address),bool,uint128,uint128,bytes)'),
+    [[
+      [poolKey.currency0, poolKey.currency1, poolKey.fee, poolKey.tickSpacing, poolKey.hooks],
       zeroForOne,
       amountIn,
       amountOutMinimum,
       hookData
-    ]
+    ]]
   );
 }
 

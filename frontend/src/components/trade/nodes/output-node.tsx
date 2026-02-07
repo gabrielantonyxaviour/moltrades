@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { cn } from "@/lib/utils";
+import { CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 
 interface OutputNodeData {
@@ -13,7 +14,11 @@ interface OutputNodeData {
   chain: string;
   chainLogo?: string;
   gasCost?: string;
-  status?: "idle" | "executing" | "complete" | "error";
+  totalFees?: string;
+  minReceived?: string;
+  estimatedTime?: string;
+  slippage?: string;
+  status?: "idle" | "pending" | "executing" | "complete" | "error";
 }
 
 export const OutputNode = memo(function OutputNode({
@@ -23,8 +28,8 @@ export const OutputNode = memo(function OutputNode({
   return (
     <div
       className={cn(
-        "bg-card border-2 rounded-lg p-4 min-w-[200px] shadow-sm transition-all",
-        selected ? "border-primary shadow-lg" : "border-border",
+        "border-2 rounded-lg min-w-[200px] shadow-sm transition-all overflow-hidden",
+        selected ? "border-primary shadow-lg" : "border-accent/50",
         data.status === "complete" && "border-accent"
       )}
     >
@@ -34,33 +39,73 @@ export const OutputNode = memo(function OutputNode({
         className="w-3 h-3 bg-primary border-2 border-card"
       />
 
-      <div className="flex items-center gap-1.5 mb-3">
+      {/* Header band */}
+      <div className="bg-accent/10 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5 text-accent" />
+          <span className="text-[10px] font-bold text-accent uppercase tracking-wide">
+            Estimated Output
+          </span>
+        </div>
         {data.chainLogo && (
-          <Image
-            src={data.chainLogo}
-            alt={data.chain}
-            width={16}
-            height={16}
-            className="rounded-full"
-          />
+          <div className="flex items-center gap-1">
+            <Image
+              src={data.chainLogo}
+              alt={data.chain}
+              width={14}
+              height={14}
+              className="rounded-full"
+            />
+            <span className="text-[10px] text-muted-foreground">{data.chain}</span>
+          </div>
         )}
-        <span className="text-xs text-muted-foreground">{data.chain}</span>
       </div>
 
-      <div className="space-y-1">
+      {/* Body */}
+      <div className="bg-card px-4 py-3">
         <p className="text-lg font-bold">
-          {data.amount} {data.token}
+          {data.amount || "..."} {data.token}
         </p>
         {data.usdValue && (
           <p className="text-xs text-muted-foreground">{data.usdValue}</p>
         )}
-      </div>
 
-      {data.gasCost && (
-        <p className="text-xs text-muted-foreground mt-3">
-          Gas: {data.gasCost}
-        </p>
-      )}
+        {/* Details grid */}
+        {(data.minReceived || data.gasCost || data.totalFees || data.estimatedTime) && (
+          <div className="mt-3 pt-2 border-t border-border space-y-1">
+            {data.minReceived && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">Min received</span>
+                <span className="font-medium">{data.minReceived}</span>
+              </div>
+            )}
+            {data.gasCost && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">Gas cost</span>
+                <span className="font-medium">{data.gasCost}</span>
+              </div>
+            )}
+            {data.totalFees && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">Fees</span>
+                <span className="font-medium">{data.totalFees}</span>
+              </div>
+            )}
+            {data.estimatedTime && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">Est. time</span>
+                <span className="font-medium">{data.estimatedTime}</span>
+              </div>
+            )}
+            {data.slippage && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">Slippage</span>
+                <span className="font-medium">{data.slippage}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 });

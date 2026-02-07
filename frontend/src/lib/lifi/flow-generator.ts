@@ -119,6 +119,8 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
   // If no steps but it's a cross-chain operation, add a bridge node
   if (steps.length === 0 && quote.action.fromChainId !== quote.action.toChainId) {
     const bridgeId = "bridge-1";
+    const bridgeGas = getTotalGasCostUSD(quote);
+    const bridgeFees = getTotalFeeCostUSD(quote);
     nodes.push({
       id: bridgeId,
       type: "bridge",
@@ -131,7 +133,13 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
         toChainLogo: getChainLogo(toChainName),
         provider: quote.toolDetails?.name || "LI.FI",
         estimatedTime: formatDuration(quote.estimate?.executionDuration || 0),
-        fee: `~$${getTotalGasCostUSD(quote)}`,
+        fromToken: quote.action.fromToken.symbol,
+        toToken: quote.action.toToken.symbol,
+        fromAmount: formatTokenAmount(quote.action.fromAmount, quote.action.fromToken.decimals),
+        toAmount: formatTokenAmount(quote.estimate?.toAmount || "0", quote.action.toToken.decimals),
+        fee: bridgeFees !== "0.00" ? `~$${bridgeFees}` : undefined,
+        gasCost: `~$${bridgeGas}`,
+        slippage: `${(quote.action.slippage * 100).toFixed(1)}%`,
         status: "idle",
       },
     });
@@ -163,6 +171,7 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
         token: quote.action.toToken.symbol,
         amount: formatTokenAmount(quote.estimate?.toAmount || "0", quote.action.toToken.decimals),
         receiveToken: extractOutputToken(quote),
+        gasCost: `~$${getTotalGasCostUSD(quote)}`,
         status: "idle",
       },
     });
@@ -181,12 +190,18 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
 
   // Output node
   const outputId = "output-1";
+  const totalGas = getTotalGasCostUSD(quote);
+  const totalFees = getTotalFeeCostUSD(quote);
+  const minReceived = quote.estimate?.toAmountMin
+    ? formatTokenAmount(quote.estimate.toAmountMin, quote.action.toToken.decimals)
+    : undefined;
+
   nodes.push({
     id: outputId,
     type: "output",
     position: { x: xPosition, y: yPosition },
     data: {
-      label: "Final Balance",
+      label: "Estimated Output",
       token: extractFinalToken(quote),
       amount: formatTokenAmount(quote.estimate?.toAmount || "0", quote.action.toToken.decimals),
       usdValue: quote.action.toToken.priceUSD
@@ -194,7 +209,11 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
         : undefined,
       chain: toChainName,
       chainLogo: getChainLogo(toChainName),
-      gasCost: `~$${getTotalGasCostUSD(quote)}`,
+      gasCost: `~$${totalGas}`,
+      totalFees: totalFees !== "0.00" ? `~$${totalFees}` : undefined,
+      minReceived: minReceived ? `${minReceived} ${extractFinalToken(quote)}` : undefined,
+      estimatedTime: formatDuration(quote.estimate?.executionDuration || 0),
+      slippage: `${(quote.action.slippage * 100).toFixed(1)}%`,
       status: "idle",
     },
   });
@@ -211,7 +230,7 @@ export function generateFlowFromQuote(quote: ComposerQuote): FlowGenerationResul
   const route: RouteInfo = {
     totalSteps: nodes.length - 2, // Exclude input and output
     estimatedTime: formatDuration(quote.estimate?.executionDuration || 0),
-    estimatedGas: `~$${getTotalGasCostUSD(quote)}`,
+    estimatedGas: `~$${totalGas}`,
     estimatedOutput: `${formatTokenAmount(quote.estimate?.toAmount || "0", quote.action.toToken.decimals)} ${extractFinalToken(quote)}`,
   };
 
@@ -235,6 +254,8 @@ function generateNodeFromStep(
     case "cross": {
       const fromChain = getChainName(step.action.fromChainId);
       const toChain = getChainName(step.action.toChainId);
+      const stepGas = getStepGasCostUSD(step);
+      const stepFees = getStepFeeCostUSD(step);
       return {
         node: {
           id: nodeId,
@@ -248,16 +269,25 @@ function generateNodeFromStep(
             toChainLogo: getChainLogo(toChain),
             provider: step.toolDetails?.name || step.tool || "LI.FI",
             estimatedTime: formatDuration(step.estimate?.executionDuration || 0),
-            fee: step.estimate?.feeCosts?.[0]
-              ? `~$${step.estimate.feeCosts[0].amountUSD}`
-              : undefined,
+            fromToken: step.action.fromToken.symbol,
+            toToken: step.action.toToken.symbol,
+            fromAmount: formatTokenAmount(step.action.fromAmount, step.action.fromToken.decimals),
+            toAmount: formatTokenAmount(step.estimate?.toAmount || "0", step.action.toToken.decimals),
+            fee: stepFees !== "0.00" ? `~$${stepFees}` : undefined,
+            gasCost: stepGas !== "0.00" ? `~$${stepGas}` : undefined,
+            slippage: `${(step.action.slippage * 100).toFixed(1)}%`,
             status: "idle",
           },
         },
       };
     }
 
-    case "swap":
+    case "swap": {
+      const stepGas = getStepGasCostUSD(step);
+      const stepFees = getStepFeeCostUSD(step);
+      const minReceived = step.estimate?.toAmountMin
+        ? formatTokenAmount(step.estimate.toAmountMin, step.action.toToken.decimals)
+        : undefined;
       return {
         node: {
           id: nodeId,
@@ -272,14 +302,20 @@ function generateNodeFromStep(
             dex: step.toolDetails?.name || step.tool || "DEX",
             rate: calculateRate(step),
             priceImpact: "< 0.1%",
+            gasCost: stepGas !== "0.00" ? `~$${stepGas}` : undefined,
+            feeCost: stepFees !== "0.00" ? `~$${stepFees}` : undefined,
+            minReceived,
+            slippage: `${(step.action.slippage * 100).toFixed(1)}%`,
             status: "idle",
           },
         },
       };
+    }
 
     case "protocol":
     case "custom": {
       const proto = step.toolDetails?.name || step.tool || "Protocol";
+      const stepGas = getStepGasCostUSD(step);
       return {
         node: {
           id: nodeId,
@@ -292,6 +328,8 @@ function generateNodeFromStep(
             token: step.action.fromToken.symbol,
             amount: formatTokenAmount(step.action.fromAmount, step.action.fromToken.decimals),
             receiveToken: step.action.toToken.symbol,
+            receiveAmount: formatTokenAmount(step.estimate?.toAmount || "0", step.action.toToken.decimals),
+            gasCost: stepGas !== "0.00" ? `~$${stepGas}` : undefined,
             status: "idle",
           },
         },
@@ -351,8 +389,12 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           toChain: bTo,
           fromChainLogo: getChainLogo(fromChain),
           toChainLogo: getChainLogo(bTo),
-          provider: "LI.FI",
-          estimatedTime: "~3 min",
+          provider: "Fetching best route...",
+          estimatedTime: "Calculating...",
+          fromToken: intent.fromToken || "ETH",
+          toToken: intent.fromToken || "ETH",
+          fromAmount: intent.amount || "0",
+          toAmount: "Calculating...",
           status: "pending",
         },
       });
@@ -378,7 +420,9 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           fromToken: intent.fromToken || "ETH",
           toToken: intent.toToken || "USDC",
           fromAmount: intent.amount || "0",
-          dex: "Uniswap",
+          toAmount: "Calculating...",
+          dex: "Fetching best DEX...",
+          rate: "Calculating...",
           status: "pending",
         },
       });
@@ -406,6 +450,8 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           protocolLogo: getProtocolLogo(dProto),
           token: intent.fromToken || "ETH",
           amount: intent.amount || "0",
+          receiveToken: `a${intent.fromToken || "ETH"}`,
+          receiveAmount: "Calculating...",
           status: "pending",
         },
       });
@@ -434,7 +480,12 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           toChain: cTo,
           fromChainLogo: getChainLogo(fromChain),
           toChainLogo: getChainLogo(cTo),
-          provider: "LI.FI",
+          provider: "Fetching best route...",
+          estimatedTime: "Calculating...",
+          fromToken: intent.fromToken || "ETH",
+          toToken: intent.fromToken || "ETH",
+          fromAmount: intent.amount || "0",
+          toAmount: "Calculating...",
           status: "pending",
         },
       });
@@ -459,6 +510,9 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           protocol: cProto,
           protocolLogo: getProtocolLogo(cProto),
           token: intent.fromToken || "ETH",
+          amount: "Calculating...",
+          receiveToken: `a${intent.fromToken || "ETH"}`,
+          receiveAmount: "Calculating...",
           status: "pending",
         },
       });
@@ -482,10 +536,13 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
     type: "output",
     position: { x: xPosition, y: yPosition },
     data: {
-      label: "Final Balance",
+      label: "Estimated Output",
       token: getOutputToken(intent),
+      amount: "Calculating...",
       chain: outChain,
       chainLogo: getChainLogo(outChain),
+      gasCost: "Calculating...",
+      estimatedTime: "Calculating...",
       status: "pending",
     },
   });
@@ -562,6 +619,35 @@ function getOutputToken(intent: ParsedIntent): string {
     default:
       return intent.fromToken || "ETH";
   }
+}
+
+function getStepGasCostUSD(step: RouteStep): string {
+  const gasCosts = step.estimate?.gasCosts || [];
+  const total = gasCosts.reduce((sum, cost) => {
+    return sum + parseFloat(cost.amountUSD || "0");
+  }, 0);
+  return total.toFixed(2);
+}
+
+function getStepFeeCostUSD(step: RouteStep): string {
+  const feeCosts = step.estimate?.feeCosts || [];
+  const total = feeCosts.reduce((sum, cost) => {
+    return sum + parseFloat(cost.amountUSD || "0");
+  }, 0);
+  return total.toFixed(2);
+}
+
+function getTotalFeeCostUSD(quote: ComposerQuote): string {
+  const feeCosts = quote.estimate?.feeCosts || [];
+  const total = feeCosts.reduce((sum, cost) => {
+    return sum + parseFloat(cost.amountUSD || "0");
+  }, 0);
+  // Also sum step-level fees
+  const steps = quote.includedSteps || [];
+  const stepTotal = steps.reduce((sum, step) => {
+    return sum + parseFloat(getStepFeeCostUSD(step));
+  }, 0);
+  return (total + stepTotal).toFixed(2);
 }
 
 // =============================================================================

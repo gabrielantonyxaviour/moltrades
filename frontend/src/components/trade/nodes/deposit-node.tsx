@@ -14,6 +14,8 @@ interface DepositNodeData {
   amount?: string;
   apy?: string;
   receiveToken?: string;
+  receiveAmount?: string;
+  gasCost?: string;
   status?: "idle" | "executing" | "complete" | "error";
 }
 
@@ -57,19 +59,26 @@ export const DepositNode = memo(function DepositNode({
         )}
       </div>
 
-      <p className="text-sm">
-        Supply {data.amount} {data.token}
+      <p className="text-sm font-medium">
+        Supply {data.amount || "..."} {data.token}
       </p>
 
       {data.receiveToken && (
         <p className="text-xs text-muted-foreground mt-1">
-          → Receive {data.receiveToken}
+          &rarr; Receive {data.receiveAmount || ""} {data.receiveToken}
         </p>
       )}
 
-      {data.apy && (
-        <p className="text-xs text-accent font-bold mt-1">APY {data.apy}</p>
-      )}
+      {/* Details */}
+      <div className="mt-2 space-y-0.5">
+        {data.apy && (
+          <p className="text-xs text-accent font-bold">APY {data.apy}</p>
+        )}
+
+        {data.gasCost && (
+          <p className="text-[10px] text-muted-foreground">Gas: {data.gasCost}</p>
+        )}
+      </div>
 
       <Handle
         type="source"

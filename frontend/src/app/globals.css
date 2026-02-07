@@ -163,6 +163,14 @@
 .dark .react-flow__controls button svg {
   fill: hsl(var(--foreground)) !important;
 }
+/* Strip ReactFlow default node wrapper styling */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
 .react-flow__attribution {
   display: none !important;
 }

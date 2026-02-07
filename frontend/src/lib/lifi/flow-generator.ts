@@ -440,6 +440,7 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
     case "deposit": {
       const depositId = "deposit-1";
       const dProto = intent.protocol || "Aave";
+      const dToken = intent.toToken || intent.fromToken || "ETH";
       nodes.push({
         id: depositId,
         type: "deposit",
@@ -448,9 +449,9 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           label: `Deposit to ${dProto}`,
           protocol: dProto,
           protocolLogo: getProtocolLogo(dProto),
-          token: intent.fromToken || "ETH",
+          token: dToken,
           amount: intent.amount || "0",
-          receiveToken: `a${intent.fromToken || "ETH"}`,
+          receiveToken: `a${dToken}`,
           receiveAmount: "Calculating...",
           status: "pending",
         },
@@ -467,9 +468,11 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
     }
 
     case "complex": {
-      // Bridge
-      const bridgeId = "bridge-1";
       const cTo = intent.toChain || "Base";
+      const depositToken = intent.toToken || intent.fromToken || "ETH";
+
+      // Bridge + swap step
+      const bridgeId = "bridge-1";
       nodes.push({
         id: bridgeId,
         type: "bridge",
@@ -483,7 +486,7 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           provider: "Fetching best route...",
           estimatedTime: "Calculating...",
           fromToken: intent.fromToken || "ETH",
-          toToken: intent.fromToken || "ETH",
+          toToken: depositToken,
           fromAmount: intent.amount || "0",
           toAmount: "Calculating...",
           status: "pending",
@@ -498,7 +501,7 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
       previousNodeId = bridgeId;
       xPosition += xGap;
 
-      // Deposit
+      // Deposit step
       const depositId = "deposit-1";
       const cProto = intent.protocol || "Aave";
       nodes.push({
@@ -509,9 +512,9 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
           label: `Deposit to ${cProto}`,
           protocol: cProto,
           protocolLogo: getProtocolLogo(cProto),
-          token: intent.fromToken || "ETH",
+          token: depositToken,
           amount: "Calculating...",
-          receiveToken: `a${intent.fromToken || "ETH"}`,
+          receiveToken: `a${depositToken}`,
           receiveAmount: "Calculating...",
           status: "pending",
         },
@@ -612,10 +615,14 @@ function getOutputToken(intent: ParsedIntent): string {
   switch (intent.action) {
     case "swap":
       return intent.toToken || "USDC";
-    case "deposit":
-      return `a${intent.fromToken || "ETH"}`;
-    case "complex":
-      return `a${intent.fromToken || "ETH"}`;
+    case "deposit": {
+      const depToken = intent.toToken || intent.fromToken || "ETH";
+      return `a${depToken}`;
+    }
+    case "complex": {
+      const depToken = intent.toToken || intent.fromToken || "ETH";
+      return `a${depToken}`;
+    }
     default:
       return intent.fromToken || "ETH";
   }

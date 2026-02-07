@@ -93,10 +93,9 @@ export function FlowCanvas({
       onEdgesChange={onEdgesChangeInternal}
       onNodeClick={handleNodeClick}
       nodeTypes={nodeTypes}
+      colorMode="dark"
       fitView
       fitViewOptions={{ padding: 0.3 }}
-      attributionPosition="bottom-left"
-      proOptions={{ hideAttribution: true }}
     >
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
       <Controls className="bg-card border border-border rounded-lg" />

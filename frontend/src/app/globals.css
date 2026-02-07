@@ -129,3 +129,25 @@
     @apply bg-card/80 backdrop-blur-md border border-border/50;
   }
 }
+
+/* ReactFlow dark mode overrides */
+.dark .react-flow__background {
+  background-color: hsl(var(--background)) !important;
+}
+.dark .react-flow__minimap {
+  background-color: hsl(var(--card)) !important;
+}
+.dark .react-flow__controls button {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+.dark .react-flow__controls button:hover {
+  background-color: hsl(var(--secondary)) !important;
+}
+.dark .react-flow__controls button svg {
+  fill: hsl(var(--foreground)) !important;
+}
+.react-flow__attribution {
+  display: none !important;
+}

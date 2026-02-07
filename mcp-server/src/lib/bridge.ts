@@ -6,6 +6,9 @@
  */
 
 import { getQuote, getStatus } from '@lifi/sdk';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { SuiClient } from '@mysten/sui/client';
+import { Transaction } from '@mysten/sui/transactions';
 import type { HexData, ChainId } from './types.js';
 
 // Known non-EVM chain IDs in LI.FI
@@ -103,5 +106,109 @@ export async function waitForBridgeCompletion(
     sourceTxHash: txHash,
     bridge,
     message: 'Bridge timeout - still pending',
+  };
+}
+
+// =============================================================================
+// SUI Bridge Execution
+// =============================================================================
+
+const SUI_MAINNET_RPC = 'https://fullnode.mainnet.sui.io';
+
+export function getSuiKeypair(): Ed25519Keypair {
+  const privateKey = process.env.SUI_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error('SUI_PRIVATE_KEY env var is required for SUI bridge execution');
+  }
+  // Support both raw hex and Bech32 (suiprivkey1...) formats
+  if (privateKey.startsWith('suiprivkey')) {
+    return Ed25519Keypair.fromSecretKey(privateKey);
+  }
+  // Raw hex (strip 0x prefix if present)
+  const hex = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
+  const bytes = Uint8Array.from(Buffer.from(hex, 'hex'));
+  return Ed25519Keypair.fromSecretKey(bytes);
+}
+
+export function getSuiAddress(): string {
+  return getSuiKeypair().toSuiAddress();
+}
+
+export interface ExecuteSuiBridgeParams {
+  toChain: number;
+  fromToken: string;
+  toToken: string;
+  fromAmount: string;
+  toAddress: string; // EVM destination address
+}
+
+export interface SuiBridgeResult {
+  txHash: string;
+  bridge: string;
+  quoteData: {
+    estimatedOutput: string;
+    minimumOutput: string;
+    executionDuration: number;
+  };
+}
+
+export async function executeSuiBridge(params: ExecuteSuiBridgeParams): Promise<SuiBridgeResult> {
+  const keypair = getSuiKeypair();
+  const suiAddress = keypair.toSuiAddress();
+  const client = new SuiClient({ url: SUI_MAINNET_RPC });
+
+  console.error('[SUI Bridge] From address:', suiAddress);
+  console.error('[SUI Bridge] Getting quote...');
+
+  // Get bridge quote using SUI address as fromAddress
+  const quote = await getBridgeQuote({
+    fromChain: NON_EVM_CHAINS.SUI,
+    toChain: params.toChain,
+    fromToken: params.fromToken,
+    toToken: params.toToken,
+    fromAmount: params.fromAmount,
+    fromAddress: suiAddress,
+  });
+
+  console.error('[SUI Bridge] Quote received, tool:', quote.tool);
+  console.error('[SUI Bridge] Estimated output:', quote.estimatedOutput);
+
+  if (!quote.transactionRequest) {
+    throw new Error('No transactionRequest in bridge quote — the bridge may not support SUI execution');
+  }
+
+  // The LI.FI transactionRequest for SUI contains a base64-encoded transaction
+  const txRequest = quote.transactionRequest as { data?: string };
+  if (!txRequest.data) {
+    throw new Error('Bridge quote transactionRequest missing data field');
+  }
+
+  console.error('[SUI Bridge] Deserializing transaction...');
+
+  // Deserialize the transaction from base64
+  const txBytes = Uint8Array.from(Buffer.from(txRequest.data, 'base64'));
+  const tx = Transaction.from(txBytes);
+
+  console.error('[SUI Bridge] Signing and executing transaction...');
+
+  const result = await client.signAndExecuteTransaction({
+    signer: keypair,
+    transaction: tx,
+  });
+
+  console.error('[SUI Bridge] TX submitted:', result.digest);
+
+  // Wait for confirmation
+  await client.waitForTransaction({ digest: result.digest });
+  console.error('[SUI Bridge] TX confirmed');
+
+  return {
+    txHash: result.digest,
+    bridge: quote.tool,
+    quoteData: {
+      estimatedOutput: quote.estimatedOutput,
+      minimumOutput: quote.minimumOutput,
+      executionDuration: quote.executionDuration,
+    },
   };
 }

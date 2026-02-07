@@ -406,25 +406,29 @@ server.tool(
     try {
       const chain = chainId || DEFAULT_UNICHAIN_ID;
       uniswapV4Full.initializeClients(chain);
-      const tokens = uniswapV4Full.getAvailableTokens();
+      const tokens = uniswapV4Full.getAvailableTokens() as Record<string, `0x${string}`>;
       const networkInfo = uniswapV4Full.getNetworkInfo();
 
-      // Resolve token addresses from symbols
-      const tokenInAddr = tokenIn.startsWith('0x')
-        ? tokenIn as `0x${string}`
-        : (tokens as Record<string, `0x${string}`>)[tokenIn.toUpperCase()];
-      const tokenOutAddr = tokenOut.startsWith('0x')
-        ? tokenOut as `0x${string}`
-        : (tokens as Record<string, `0x${string}`>)[tokenOut.toUpperCase()];
+      // Helper to resolve token - treats "ETH" as WETH for quotes (pools use WETH)
+      const resolveToken = (symbol: string): `0x${string}` | undefined => {
+        if (symbol.startsWith('0x')) return symbol as `0x${string}`;
+        const upper = symbol.toUpperCase();
+        // For quotes, ETH uses WETH address (pools are WETH-based)
+        if (upper === 'ETH') return tokens['WETH'];
+        return tokens[upper];
+      };
+
+      const tokenInAddr = resolveToken(tokenIn);
+      const tokenOutAddr = resolveToken(tokenOut);
 
       if (!tokenInAddr) {
         return {
-          content: [{ type: 'text' as const, text: `Token not found: ${tokenIn}. Available: ${Object.keys(tokens).join(', ')}` }],
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenIn}. Available: ETH, ${Object.keys(tokens).join(', ')}` }],
         };
       }
       if (!tokenOutAddr) {
         return {
-          content: [{ type: 'text' as const, text: `Token not found: ${tokenOut}. Available: ${Object.keys(tokens).join(', ')}` }],
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenOut}. Available: ETH, ${Object.keys(tokens).join(', ')}` }],
         };
       }
 
@@ -477,22 +481,33 @@ server.tool(
     try {
       const chain = chainId || DEFAULT_UNICHAIN_ID;
       uniswapV4Full.initializeClients(chain);
-      const tokens = uniswapV4Full.getAvailableTokens();
+      const tokens = uniswapV4Full.getAvailableTokens() as Record<string, `0x${string}`>;
       const networkInfo = uniswapV4Full.getNetworkInfo();
 
-      // Resolve token addresses
-      const tokenInAddr = tokenIn.startsWith('0x')
-        ? tokenIn as `0x${string}`
-        : (tokens as Record<string, `0x${string}`>)[tokenIn.toUpperCase()];
-      const tokenOutAddr = tokenOut.startsWith('0x')
-        ? tokenOut as `0x${string}`
-        : (tokens as Record<string, `0x${string}`>)[tokenOut.toUpperCase()];
+      // Native ETH address (zero address)
+      const NATIVE_ETH = '0x0000000000000000000000000000000000000000' as `0x${string}`;
+
+      // Helper to resolve token - "ETH" means native ETH for swaps
+      const resolveToken = (symbol: string, forInput: boolean): `0x${string}` | undefined => {
+        if (symbol.startsWith('0x')) return symbol as `0x${string}`;
+        const upper = symbol.toUpperCase();
+        // For input, ETH = native ETH (will be wrapped by router)
+        if (upper === 'ETH' && forInput) return NATIVE_ETH;
+        // For output or if WETH specified, use WETH
+        if (upper === 'ETH' || upper === 'WETH') return tokens['WETH'];
+        return tokens[upper];
+      };
+
+      const tokenInAddr = resolveToken(tokenIn, true);
+      const tokenOutAddr = resolveToken(tokenOut, false);
 
       if (!tokenInAddr || !tokenOutAddr) {
         return {
-          content: [{ type: 'text' as const, text: `Token not found. Available: ${Object.keys(tokens).join(', ')}` }],
+          content: [{ type: 'text' as const, text: `Token not found. Available: ETH, ${Object.keys(tokens).join(', ')}` }],
         };
       }
+
+      const isNativeETH = tokenInAddr === NATIVE_ETH;
 
       // Execute swap using the working V4 implementation
       const result = await uniswapV4Full.executeSwap(

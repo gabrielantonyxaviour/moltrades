@@ -161,9 +161,59 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
         })
         toast.success("Transaction sent successfully!")
       } else if (selectedChain.addressType === "solana") {
-        toast.error("Solana withdrawals coming soon!")
+        // Solana withdrawal using @solana/kit + Privy Standard Wallet
+        const solanaWallet = solanaWallets.find((w) => {
+          const name = w.standardWallet?.name ?? ""
+          return name.toLowerCase().includes("privy")
+        })
+        if (!solanaWallet?.standardWallet) throw new Error("Solana wallet not found")
+
+        const solKit = await import("@solana/kit")
+        const { getTransferSolInstruction } = await import("@solana-program/system")
+
+        const rpc = solKit.createSolanaRpc("https://api.mainnet-beta.solana.com")
+        const sender = solKit.address(solanaWallet.address)
+        const recipient = solKit.address(withdrawAddress)
+        const amountLamports = solKit.lamports(
+          BigInt(Math.floor(parseFloat(withdrawAmount) * 1_000_000_000))
+        )
+
+        const transferIx = getTransferSolInstruction({
+          source: sender,
+          destination: recipient,
+          amount: amountLamports,
+        })
+
+        const { value: blockhash } = await rpc.getLatestBlockhash().send()
+
+        const message = solKit.pipe(
+          solKit.createTransactionMessage({ version: 0 }),
+          (m: Parameters<typeof solKit.setTransactionMessageFeePayer>[1]) =>
+            solKit.setTransactionMessageFeePayer(sender, m),
+          (m: Parameters<typeof solKit.setTransactionMessageLifetimeUsingBlockhash>[1]) =>
+            solKit.setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
+          (m: Parameters<typeof solKit.appendTransactionMessageInstruction>[1]) =>
+            solKit.appendTransactionMessageInstruction(transferIx, m),
+        )
+
+        const compiledTx = solKit.compileTransaction(message)
+        const txEncoder = solKit.getTransactionEncoder()
+        const txBytes = txEncoder.encode(compiledTx)
+
+        // Use Standard Wallet signAndSendTransaction
+        const signAndSendFeature = solanaWallet.standardWallet.features["solana:signAndSendTransaction"]
+        if (!signAndSendFeature) throw new Error("Wallet does not support signAndSendTransaction")
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (signAndSendFeature as any).signAndSendTransaction({
+          transaction: txBytes,
+          account: solanaWallet.standardWallet.accounts[0],
+          chain: "solana:mainnet",
+        })
+
+        toast.success("Solana transaction sent!")
       } else {
-        toast.error(`${selectedChain.name} withdrawals not yet supported`)
+        toast.error(`${selectedChain.name} withdrawals not yet supported. Deposit only.`)
       }
 
       setWithdrawAddress("")

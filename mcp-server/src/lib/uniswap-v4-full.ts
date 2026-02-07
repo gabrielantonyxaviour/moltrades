@@ -22,6 +22,8 @@ import {
   keccak256,
   encodeAbiParameters,
   parseAbiParameters,
+  concat,
+  toHex,
   type Address,
   type PublicClient,
   type WalletClient,
@@ -605,6 +607,101 @@ export async function getSwapQuote(
 }
 
 // =============================================================================
+// V4 UNIVERSAL ROUTER ENCODING
+// =============================================================================
+
+// V4 Universal Router Commands
+const V4_SWAP_COMMAND = 0x10;
+
+// V4 Actions
+const V4_ACTIONS = {
+  SWAP_EXACT_IN_SINGLE: 0x06,
+  SETTLE_ALL: 0x0c,
+  TAKE_ALL: 0x0f,
+} as const;
+
+/**
+ * Encode ExactInputSingle params for V4 swap
+ */
+function encodeExactInputSingleParams(
+  poolKey: PoolKey,
+  zeroForOne: boolean,
+  amountIn: bigint,
+  amountOutMinimum: bigint,
+  hookData: `0x${string}` = '0x'
+): `0x${string}` {
+  return encodeAbiParameters(
+    parseAbiParameters([
+      '(address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks)',
+      'bool', 'uint128', 'uint128', 'bytes'
+    ]),
+    [
+      {
+        currency0: poolKey.currency0,
+        currency1: poolKey.currency1,
+        fee: poolKey.fee,
+        tickSpacing: poolKey.tickSpacing,
+        hooks: poolKey.hooks
+      },
+      zeroForOne,
+      amountIn,
+      amountOutMinimum,
+      hookData
+    ]
+  );
+}
+
+/**
+ * Encode SETTLE_ALL params
+ */
+function encodeSettleAllParams(currency: Address, maxAmount: bigint): `0x${string}` {
+  return encodeAbiParameters(
+    parseAbiParameters('address, uint256'),
+    [currency, maxAmount]
+  );
+}
+
+/**
+ * Encode TAKE_ALL params
+ */
+function encodeTakeAllParams(currency: Address, minAmount: bigint): `0x${string}` {
+  return encodeAbiParameters(
+    parseAbiParameters('address, uint256'),
+    [currency, minAmount]
+  );
+}
+
+/**
+ * Build complete V4 swap input with actions sequence
+ */
+function buildV4SwapInput(
+  poolKey: PoolKey,
+  zeroForOne: boolean,
+  amountIn: bigint,
+  minAmountOut: bigint,
+  tokenIn: Address,
+  tokenOut: Address
+): `0x${string}` {
+  // Build actions bytes: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL
+  const actions = concat([
+    toHex(V4_ACTIONS.SWAP_EXACT_IN_SINGLE, { size: 1 }),
+    toHex(V4_ACTIONS.SETTLE_ALL, { size: 1 }),
+    toHex(V4_ACTIONS.TAKE_ALL, { size: 1 }),
+  ]) as `0x${string}`;
+
+  // Encode params for each action
+  const swapParams = encodeExactInputSingleParams(poolKey, zeroForOne, amountIn, minAmountOut);
+  const settleParams = encodeSettleAllParams(tokenIn, amountIn);
+  const takeParams = encodeTakeAllParams(tokenOut, minAmountOut);
+
+  // Encode the full V4Router input: (bytes actions, bytes[] params)
+  return encodeAbiParameters(
+    parseAbiParameters('bytes, bytes[]'),
+    [actions, [swapParams, settleParams, takeParams]]
+  );
+}
+
+// =============================================================================
 // SWAP EXECUTION
 // =============================================================================
 
@@ -640,23 +737,24 @@ export async function executeSwap(
     const isNativeETH = tokenIn.toLowerCase() === '0x0000000000000000000000000000000000000000';
 
     // Approve tokens if needed (not for native ETH)
+    // V4 uses Universal Router directly, not PERMIT2
     if (!isNativeETH) {
       const allowance = await publicClient.readContract({
         address: tokenIn,
         abi: ERC20_ABI,
         functionName: 'allowance',
-        args: [userAddress, contracts.PERMIT2],
+        args: [userAddress, contracts.UNIVERSAL_ROUTER],
       }) as bigint;
 
       if (allowance < amountInWei) {
-        console.log('[V4] Approving token spend...');
+        console.log('[V4] Approving token spend to Universal Router...');
         const approveTx = await walletClient.writeContract({
           chain: getCurrentChain(),
           account: getCurrentAccount(),
           address: tokenIn,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [contracts.PERMIT2, amountInWei * 2n],
+          args: [contracts.UNIVERSAL_ROUTER, amountInWei * 2n],
         });
 
         await publicClient.waitForTransactionReceipt({ hash: approveTx });
@@ -664,35 +762,34 @@ export async function executeSwap(
       }
     }
 
-    // Build Universal Router execute command
-    // Command 0x00 = V4_SWAP for exact input single
+    // Build V4 swap command with proper action sequence
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800); // 30 minutes
+    const zeroForOne = tokenIn.toLowerCase() === quote.poolKey.currency0.toLowerCase();
 
-    // Encode swap path
-    const swapPath = encodeAbiParameters(
-      parseAbiParameters('address, address, uint24, int24, address, bool, uint128, uint128, bytes'),
-      [
-        quote.poolKey.currency0,
-        quote.poolKey.currency1,
-        quote.poolKey.fee,
-        quote.poolKey.tickSpacing,
-        quote.poolKey.hooks,
-        tokenIn.toLowerCase() === quote.poolKey.currency0.toLowerCase(),
-        amountInWei,
-        minAmountOut,
-        '0x' as `0x${string}`,
-      ]
+    // Build V4 swap input with actions: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL
+    const v4SwapInput = buildV4SwapInput(
+      quote.poolKey,
+      zeroForOne,
+      amountInWei,
+      minAmountOut,
+      tokenIn,
+      tokenOut
     );
 
-    const commands = '0x00' as `0x${string}`;
-    const inputs = [swapPath];
+    // V4_SWAP command = 0x10
+    const commands = toHex(V4_SWAP_COMMAND, { size: 1 }) as `0x${string}`;
+    const inputs = [v4SwapInput];
 
     const ROUTER_ABI = parseAbi([
       'function execute(bytes commands, bytes[] inputs, uint256 deadline) external payable',
     ]);
 
     // Execute the swap
-    console.log('[V4] Executing swap...');
+    console.log('[V4] Executing swap with V4 encoding...');
+    console.log('[V4] Command: 0x10 (V4_SWAP)');
+    console.log('[V4] Actions: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL');
+    console.log('[V4] zeroForOne:', zeroForOne);
+
     const txHash = await walletClient.writeContract({
       chain: getCurrentChain(),
       account: getCurrentAccount(),

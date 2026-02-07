@@ -14,16 +14,18 @@
  *     5. get_trade_status - Poll cross-chain bridge status
  *
  *   Uniswap V4 (Unichain):
- *     6. uniswap_v4_quote - Get swap quote on Unichain
- *     7. uniswap_v4_swap - Execute swap on Unichain
- *     8. uniswap_v4_tokens - List available tokens
+ *     6. uniswap_v4_tokens - List available tokens
+ *     7. uniswap_v4_pools - Discover pools for token pairs
+ *     8. uniswap_v4_hooks - Check hooks permissions
+ *     9. uniswap_v4_quote - Get swap quote on Unichain
+ *    10. uniswap_v4_swap - Execute swap on Unichain
  *
  *   Social (Moltrades App):
- *     9. publish_trade - Post trade to feed
- *    10. browse_feed - Read the social feed
- *    11. comment_on_trade - Comment on a post
- *    12. get_agent_profile - View an agent's profile
- *    13. copy_trade - Copy another agent's trade
+ *    11. publish_trade - Post trade to feed
+ *    12. browse_feed - Read the social feed
+ *    13. comment_on_trade - Comment on a post
+ *    14. get_agent_profile - View an agent's profile
+ *    15. copy_trade - Copy another agent's trade
  */
 
 import 'dotenv/config';
@@ -47,6 +49,7 @@ import { getComposerQuote, getTotalGasCostUSD } from './lib/quote.js';
 import { executeComposerRoute, waitForCompletion, getTransactionStatus, buildExplorerUrl } from './lib/execute.js';
 import * as api from './lib/moltrades-api.js';
 import * as uniswapV4 from './lib/uniswap-v4.js';
+import * as uniswapV4Full from './lib/uniswap-v4-full.js';
 import type { Address, HexData } from './lib/types.js';
 
 // =============================================================================
@@ -383,7 +386,7 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 6: uniswap_v4_quote (Unichain)
+// TOOL 7: uniswap_v4_quote (Unichain)
 // =============================================================================
 
 server.tool(
@@ -451,7 +454,7 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 7: uniswap_v4_swap (Unichain)
+// TOOL 8: uniswap_v4_swap (Unichain)
 // =============================================================================
 
 server.tool(
@@ -538,7 +541,7 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 8: uniswap_v4_tokens (Unichain)
+// TOOL 6: uniswap_v4_tokens (Unichain)
 // =============================================================================
 
 server.tool(
@@ -569,7 +572,118 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 9: publish_trade (Social)
+// TOOL 9: uniswap_v4_pools (Unichain)
+// =============================================================================
+
+server.tool(
+  'uniswap_v4_pools',
+  'Discover available Uniswap V4 pools for a token pair on Unichain. Shows liquidity, fees, and hooks.',
+  {
+    tokenA: z.string().describe('First token symbol or address (e.g. "WETH", "USDC")'),
+    tokenB: z.string().describe('Second token symbol or address (e.g. "USDC", "UNI")'),
+    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
+  },
+  async ({ tokenA, tokenB, chainId }) => {
+    try {
+      const chain = chainId || 130;
+      uniswapV4Full.initializeClients(chain);
+      const tokens = uniswapV4Full.getAvailableTokens();
+
+      // Resolve token addresses from symbols
+      const tokenAAddr = tokenA.startsWith('0x')
+        ? tokenA as Address
+        : (tokens as Record<string, `0x${string}`>)[tokenA.toUpperCase()];
+      const tokenBAddr = tokenB.startsWith('0x')
+        ? tokenB as Address
+        : (tokens as Record<string, `0x${string}`>)[tokenB.toUpperCase()];
+
+      if (!tokenAAddr) {
+        return {
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenA}. Available: ${Object.keys(tokens).join(', ')}` }],
+        };
+      }
+      if (!tokenBAddr) {
+        return {
+          content: [{ type: 'text' as const, text: `Token not found: ${tokenB}. Available: ${Object.keys(tokens).join(', ')}` }],
+        };
+      }
+
+      const pools = await uniswapV4Full.discoverPools(tokenAAddr as `0x${string}`, tokenBAddr as `0x${string}`);
+      const chainInfo = uniswapV4Full.getNetworkInfo();
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            chain: chainInfo.name,
+            chainId: chainInfo.chainId,
+            tokenA: tokenAAddr,
+            tokenB: tokenBAddr,
+            poolsFound: pools.length,
+            pools: pools.map((p) => ({
+              poolId: p.poolId,
+              fee: `${p.poolKey.fee / 10000}%`,
+              tickSpacing: p.poolKey.tickSpacing,
+              hooks: p.poolKey.hooks,
+              tick: p.tick,
+              liquidity: p.liquidity.toString(),
+              sqrtPriceX96: p.sqrtPriceX96.toString(),
+            })),
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      const err = error as Error;
+      return {
+        content: [{ type: 'text' as const, text: `Pool discovery error: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// =============================================================================
+// TOOL 10: uniswap_v4_hooks (Unichain)
+// =============================================================================
+
+server.tool(
+  'uniswap_v4_hooks',
+  'Check Uniswap V4 hooks permissions for a given hooks contract address. Shows which lifecycle hooks are enabled.',
+  {
+    hooksAddress: z.string().describe('Hooks contract address (or 0x0 for no hooks)'),
+    chainId: z.number().optional().describe('Chain ID (default: 130 for Unichain mainnet)'),
+  },
+  async ({ hooksAddress, chainId }) => {
+    try {
+      const chain = chainId || 130;
+      uniswapV4Full.initializeClients(chain);
+
+      const hooksInfo = await uniswapV4Full.getHooksInfo(hooksAddress as `0x${string}`);
+      const chainInfo = uniswapV4Full.getNetworkInfo();
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            chain: chainInfo.name,
+            chainId: chainInfo.chainId,
+            address: hooksAddress,
+            isValid: hooksInfo.isValid,
+            permissions: hooksInfo.permissions,
+            error: hooksInfo.error,
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      const err = error as Error;
+      return {
+        content: [{ type: 'text' as const, text: `Hooks check error: ${err.message}` }],
+      };
+    }
+  }
+);
+
+// =============================================================================
+// TOOL 11: publish_trade (Social)
 // =============================================================================
 
 server.tool(
@@ -618,7 +732,7 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 7: browse_feed
+// TOOL 12: browse_feed (Social)
 // =============================================================================
 
 server.tool(
@@ -669,7 +783,7 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 8: comment_on_trade
+// TOOL 13: comment_on_trade (Social)
 // =============================================================================
 
 server.tool(
@@ -698,7 +812,7 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 9: get_agent_profile
+// TOOL 14: get_agent_profile (Social)
 // =============================================================================
 
 server.tool(
@@ -737,7 +851,7 @@ server.tool(
 );
 
 // =============================================================================
-// TOOL 10: copy_trade
+// TOOL 15: copy_trade (Social)
 // =============================================================================
 
 server.tool(

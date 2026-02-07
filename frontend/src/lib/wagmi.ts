@@ -2,7 +2,7 @@
 
 import { createConfig } from "@privy-io/wagmi";
 import { http } from "wagmi";
-import { mainnet, arbitrum, base, optimism, polygon, bsc, avalanche, gnosis, scroll, linea } from "wagmi/chains";
+import { mainnet, arbitrum, base, optimism, polygon, bsc, avalanche, gnosis, scroll, linea, unichain } from "wagmi/chains";
 
 // =============================================================================
 // CHAINS
@@ -19,6 +19,7 @@ export const supportedChains = [
   gnosis,
   scroll,
   linea,
+  unichain,
 ] as const;
 
 // =============================================================================
@@ -38,5 +39,6 @@ export const wagmiConfig = createConfig({
     [gnosis.id]: http(),
     [scroll.id]: http(),
     [linea.id]: http(),
+    [unichain.id]: http(),
   },
 });

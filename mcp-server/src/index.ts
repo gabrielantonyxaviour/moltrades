@@ -26,6 +26,9 @@
  *    13. comment_on_trade - Comment on a post
  *    14. get_agent_profile - View an agent's profile
  *    15. copy_trade - Copy another agent's trade
+ *
+ *   Non-EVM Bridge:
+ *    16. bridge_to_evm - Bridge from SUI/Solana to EVM (quote + execute for SUI)
  */
 
 import 'dotenv/config';
@@ -51,7 +54,14 @@ import * as api from './lib/moltrades-api.js';
 import * as uniswapV4 from './lib/uniswap-v4.js';
 import * as uniswapV4Full from './lib/uniswap-v4-full.js';
 import type { Address, HexData } from './lib/types.js';
-import { getBridgeQuote, waitForBridgeCompletion, NON_EVM_CHAINS } from './lib/bridge.js';
+import {
+  getBridgeQuote,
+  waitForBridgeCompletion,
+  executeSuiBridge,
+  getSuiAddress,
+  NON_EVM_CHAINS,
+  SUI_TOKENS,
+} from './lib/bridge.js';
 
 // =============================================================================
 // SERVER SETUP
@@ -1013,18 +1023,17 @@ server.tool(
 
 server.tool(
   'bridge_to_evm',
-  'Bridge tokens from non-EVM chains (Solana, SUI) to EVM chains. Gets a quote and provides bridge details.',
+  'Bridge tokens from non-EVM chains (Solana, SUI) to EVM chains. Quote-only by default; set execute=true to sign and submit a SUI bridge transaction.',
   {
     fromChain: z.string().describe('Source chain name: "solana" or "sui"'),
-    toChain: z.number().describe('Destination EVM chain ID (e.g. 8453 for Base, 42161 for Arbitrum)'),
-    fromToken: z.string().describe('Source token address on the non-EVM chain'),
+    toChain: z.number().describe('Destination EVM chain ID (e.g. 130 for Unichain, 8453 for Base)'),
+    fromToken: z.string().describe('Source token address or symbol. For SUI: "SUI" or "USDC" or full address'),
     toToken: z.string().describe('Destination token address on EVM chain'),
-    amount: z.string().describe('Amount in smallest unit (e.g. lamports for SOL)'),
+    amount: z.string().describe('Amount in smallest unit (e.g. 1000000000 for 1 SUI, 1000000 for 1 USDC)'),
+    execute: z.boolean().optional().describe('If true, sign and submit the bridge transaction (SUI only). Default: false (quote only)'),
   },
-  async ({ fromChain, toChain, fromToken, toToken, amount }) => {
+  async ({ fromChain, toChain, fromToken, toToken, amount, execute }) => {
     try {
-      const { address } = initializeLifiSDK();
-
       const chainMap: Record<string, number> = {
         solana: NON_EVM_CHAINS.SOLANA,
         sui: NON_EVM_CHAINS.SUI,
@@ -1037,13 +1046,90 @@ server.tool(
         };
       }
 
+      // Resolve SUI token symbols to full addresses
+      const resolvedFromToken = fromChainId === NON_EVM_CHAINS.SUI
+        ? (SUI_TOKENS as Record<string, string>)[fromToken.toUpperCase()] || fromToken
+        : fromToken;
+
+      // Use the appropriate fromAddress based on chain type
+      const isSui = fromChainId === NON_EVM_CHAINS.SUI;
+      let fromAddress: string;
+      if (isSui) {
+        try {
+          fromAddress = getSuiAddress();
+        } catch {
+          // If no SUI_PRIVATE_KEY, fall back to EVM address for quote-only
+          if (execute) {
+            return {
+              content: [{ type: 'text' as const, text: 'SUI_PRIVATE_KEY env var is required for SUI bridge execution. Set it and try again.' }],
+            };
+          }
+          const { address } = initializeLifiSDK();
+          fromAddress = address;
+        }
+      } else {
+        const { address } = initializeLifiSDK();
+        fromAddress = address;
+      }
+
+      // --- Execute mode (SUI only) ---
+      if (execute) {
+        if (!isSui) {
+          return {
+            content: [{ type: 'text' as const, text: 'Execution is currently only supported for SUI. For Solana, use quote-only mode.' }],
+          };
+        }
+
+        const { address: evmAddress } = initializeLifiSDK();
+
+        console.error('[MCP] Executing SUI bridge...');
+        const bridgeResult = await executeSuiBridge({
+          toChain,
+          fromToken: resolvedFromToken,
+          toToken,
+          fromAmount: amount,
+          toAddress: evmAddress,
+        });
+
+        console.error('[MCP] SUI bridge TX submitted, waiting for completion...');
+        const completion = await waitForBridgeCompletion(
+          bridgeResult.txHash,
+          bridgeResult.bridge,
+          fromChainId,
+          toChain,
+        );
+
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({
+              executed: true,
+              status: completion.status,
+              fromChain: 'SUI',
+              toChain: getChainName(toChain),
+              sourceTxHash: bridgeResult.txHash,
+              destinationTxHash: completion.destinationTxHash,
+              bridge: bridgeResult.bridge,
+              estimatedOutput: bridgeResult.quoteData.estimatedOutput,
+              minimumOutput: bridgeResult.quoteData.minimumOutput,
+              message: completion.status === 'DONE'
+                ? 'Bridge completed! Funds are now on the destination chain.'
+                : completion.status === 'PENDING'
+                  ? 'Bridge submitted but still pending. Use get_trade_status to check later.'
+                  : `Bridge failed: ${completion.message}`,
+            }, null, 2),
+          }],
+        };
+      }
+
+      // --- Quote-only mode (default) ---
       const quote = await getBridgeQuote({
         fromChain: fromChainId,
         toChain,
-        fromToken,
+        fromToken: resolvedFromToken,
         toToken,
         fromAmount: amount,
-        fromAddress: address,
+        fromAddress,
       });
 
       return {
@@ -1059,7 +1145,9 @@ server.tool(
             minimumOutput: quote.minimumOutput,
             executionDuration: `${quote.executionDuration}s`,
             tool: quote.tool,
-            message: 'Bridge quote ready. Note: Execution requires the source chain wallet to sign the transaction.',
+            message: isSui
+              ? 'Quote ready. Call again with execute=true to sign and submit the SUI bridge transaction.'
+              : 'Quote ready. Note: Solana execution is not yet supported server-side.',
           }, null, 2),
         }],
       };

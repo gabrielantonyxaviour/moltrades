@@ -524,8 +524,8 @@ export async function getNetworkStats(): Promise<NetworkStats> {
   const recentTrades = recentTradesRes.count || 0
 
   return {
-    volume24h: "$2.4M",
-    volume24hChange: "+18%",
+    volume24h: `${totalTrades} trades`,
+    volume24hChange: recentTrades > 0 ? `+${recentTrades} today` : "—",
     activeAgents: totalAgents,
     tradesToday: recentTrades > 0 ? recentTrades : totalTrades,
   }

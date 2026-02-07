@@ -29,22 +29,34 @@ function PostCardSkeleton() {
   )
 }
 
+const PAGE_SIZE = 20
+
 export default function FeedPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [activeTab, setActiveTab] = useState("for-you")
   const [posts, setPosts] = useState<PostWithAgent[]>([])
+  const [hasMore, setHasMore] = useState(false)
 
-  const fetchPosts = useCallback(async (tab: string) => {
-    setIsLoading(true)
+  const fetchPosts = useCallback(async (tab: string, offset = 0, append = false) => {
+    if (append) {
+      setIsLoadingMore(true)
+    } else {
+      setIsLoading(true)
+    }
     try {
       const tabParam = tab === "for-you" ? "for_you" : tab
-      const res = await fetch(`/api/feed?tab=${tabParam}`)
+      const res = await fetch(`/api/feed?tab=${tabParam}&limit=${PAGE_SIZE}&offset=${offset}`)
       const data = await res.json()
-      setPosts(data.posts || [])
+      const newPosts = data.posts || []
+      setPosts(prev => append ? [...prev, ...newPosts] : newPosts)
+      setHasMore(data.hasMore || false)
     } catch {
-      setPosts([])
+      if (!append) setPosts([])
+      setHasMore(false)
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
   }, [])
 
@@ -54,6 +66,10 @@ export default function FeedPage() {
 
   const handleRefresh = () => {
     fetchPosts(activeTab)
+  }
+
+  const handleLoadMore = () => {
+    fetchPosts(activeTab, posts.length, true)
   }
 
   return (
@@ -173,10 +189,15 @@ export default function FeedPage() {
       </Tabs>
 
       {/* Load More */}
-      {!isLoading && posts.length > 0 && (
+      {!isLoading && hasMore && (
         <div className="flex justify-center mt-8">
-          <Button variant="outline" className="font-heading">
-            Load More
+          <Button
+            variant="outline"
+            className="font-heading"
+            onClick={handleLoadMore}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore ? "Loading..." : "Load More"}
           </Button>
         </div>
       )}

@@ -5,7 +5,7 @@
  */
 
 import { Node, Edge } from "@xyflow/react";
-import type { ComposerQuote, RouteStep, RouteInfo, ParsedIntent } from "./types";
+import type { ComposerQuote, RouteStep, RouteInfo, ParsedIntent, PhaseIntent } from "./types";
 import { getChainName } from "./sdk";
 import { formatTokenAmount, formatDuration, getTotalGasCostUSD } from "./quotes";
 
@@ -36,6 +36,7 @@ function getChainLogo(chainName: string): string {
     Unichain: "/chains/unichain.png",
     Linea: "/chains/linea.png",
     Scroll: "/chains/scroll.png",
+    SUI: "/chains/sui.png",
   };
   return map[chainName] || "/chains/ethereum.png";
 }
@@ -561,6 +562,218 @@ export function generateFlowFromIntent(intent: ParsedIntent): FlowGenerationResu
   const route: RouteInfo = {
     totalSteps: nodes.length - 2,
     estimatedTime: "~3 min",
+    estimatedGas: "Calculating...",
+    estimatedOutput: "Calculating...",
+  };
+
+  return { nodes, edges, route };
+}
+
+// =============================================================================
+// MULTI-PHASE FLOW GENERATOR
+// =============================================================================
+
+export function generateFlowFromPhases(phases: PhaseIntent[]): FlowGenerationResult {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  let xPosition = 0;
+  const yPosition = 200;
+  const xGap = 300;
+
+  let previousNodeId: string | null = null;
+
+  for (let phaseIdx = 0; phaseIdx < phases.length; phaseIdx++) {
+    const phase = phases[phaseIdx];
+    const phaseNum = phase.phase;
+    const fromChain = phase.fromChain || "Ethereum";
+    const toChain = phase.toChain || phase.fromChain || "Ethereum";
+
+    // Add phase divider between phases (not before the first)
+    if (phaseIdx > 0 && previousNodeId) {
+      const dividerId = `divider-${phaseIdx}`;
+      nodes.push({
+        id: dividerId,
+        type: "phaseDivider",
+        position: { x: xPosition, y: yPosition },
+        data: {
+          fromPhase: phases[phaseIdx - 1].phase,
+          toPhase: phaseNum,
+          status: "idle",
+        },
+      });
+      edges.push({
+        id: `e-${previousNodeId}-${dividerId}`,
+        source: previousNodeId,
+        target: dividerId,
+        animated: true,
+        style: { stroke: "hsl(var(--muted-foreground))", strokeWidth: 2, strokeDasharray: "5 5" },
+      });
+      previousNodeId = dividerId;
+      xPosition += xGap;
+    }
+
+    // Input node for first phase only
+    if (phaseIdx === 0) {
+      const inputId = `input-p${phaseNum}`;
+      nodes.push({
+        id: inputId,
+        type: "tokenInput",
+        position: { x: xPosition, y: yPosition },
+        data: {
+          label: "Starting Balance",
+          token: phase.fromToken || "ETH",
+          amount: phase.amount || "0",
+          chain: fromChain,
+          chainLogo: getChainLogo(fromChain),
+          status: "pending",
+          phase: phaseNum,
+        },
+      });
+      previousNodeId = inputId;
+      xPosition += xGap;
+    }
+
+    // Add step node based on phase action
+    const stepId = `step-p${phaseNum}`;
+    switch (phase.action) {
+      case "bridge": {
+        const bTo = phase.toChain || "Base";
+        nodes.push({
+          id: stepId,
+          type: "bridge",
+          position: { x: xPosition, y: yPosition },
+          data: {
+            label: `Bridge to ${bTo}`,
+            fromChain,
+            toChain: bTo,
+            fromChainLogo: getChainLogo(fromChain),
+            toChainLogo: getChainLogo(bTo),
+            provider: "Fetching best route...",
+            estimatedTime: "Calculating...",
+            fromToken: phase.fromToken || "ETH",
+            toToken: phase.toToken || phase.fromToken || "ETH",
+            fromAmount: phase.amount || "0",
+            toAmount: "Calculating...",
+            status: "pending",
+            phase: phaseNum,
+          },
+        });
+        break;
+      }
+      case "swap": {
+        nodes.push({
+          id: stepId,
+          type: "swap",
+          position: { x: xPosition, y: yPosition },
+          data: {
+            label: `${phase.fromToken || "ETH"} → ${phase.toToken || "USDC"}`,
+            fromToken: phase.fromToken || "ETH",
+            toToken: phase.toToken || "USDC",
+            fromAmount: phase.amount || "0",
+            toAmount: "Calculating...",
+            dex: "Fetching best DEX...",
+            rate: "Calculating...",
+            status: "pending",
+            phase: phaseNum,
+          },
+        });
+        break;
+      }
+      case "deposit": {
+        const dProto = phase.protocol || "Aave";
+        const dToken = phase.toToken || phase.fromToken || "ETH";
+        nodes.push({
+          id: stepId,
+          type: "deposit",
+          position: { x: xPosition, y: yPosition },
+          data: {
+            label: `Deposit to ${dProto}`,
+            protocol: dProto,
+            protocolLogo: getProtocolLogo(dProto),
+            token: dToken,
+            amount: phase.amount || "0",
+            receiveToken: `a${dToken}`,
+            receiveAmount: "Calculating...",
+            status: "pending",
+            phase: phaseNum,
+          },
+        });
+        break;
+      }
+      case "complex": {
+        const cTo = phase.toChain || "Base";
+        // For complex within a phase, add bridge node
+        nodes.push({
+          id: stepId,
+          type: "bridge",
+          position: { x: xPosition, y: yPosition },
+          data: {
+            label: `Bridge to ${cTo}`,
+            fromChain,
+            toChain: cTo,
+            fromChainLogo: getChainLogo(fromChain),
+            toChainLogo: getChainLogo(cTo),
+            provider: "Fetching best route...",
+            estimatedTime: "Calculating...",
+            fromToken: phase.fromToken || "ETH",
+            toToken: phase.toToken || phase.fromToken || "ETH",
+            fromAmount: phase.amount || "0",
+            toAmount: "Calculating...",
+            status: "pending",
+            phase: phaseNum,
+          },
+        });
+        break;
+      }
+    }
+
+    if (previousNodeId && previousNodeId !== stepId) {
+      edges.push({
+        id: `e-${previousNodeId}-${stepId}`,
+        source: previousNodeId,
+        target: stepId,
+        animated: true,
+        style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+      });
+    }
+    previousNodeId = stepId;
+    xPosition += xGap;
+  }
+
+  // Output node
+  const lastPhase = phases[phases.length - 1];
+  const outChain = lastPhase.toChain || lastPhase.fromChain || "Ethereum";
+  const outputId = "output-1";
+  nodes.push({
+    id: outputId,
+    type: "output",
+    position: { x: xPosition, y: yPosition },
+    data: {
+      label: "Estimated Output",
+      token: getOutputToken(lastPhase),
+      amount: "Calculating...",
+      chain: outChain,
+      chainLogo: getChainLogo(outChain),
+      gasCost: "Calculating...",
+      estimatedTime: "Calculating...",
+      status: "pending",
+      phase: lastPhase.phase,
+    },
+  });
+
+  if (previousNodeId) {
+    edges.push({
+      id: `e-${previousNodeId}-${outputId}`,
+      source: previousNodeId,
+      target: outputId,
+      animated: true,
+      style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+    });
+  }
+
+  const route: RouteInfo = {
+    totalSteps: nodes.length - 2,
+    estimatedTime: "~5 min",
     estimatedGas: "Calculating...",
     estimatedOutput: "Calculating...",
   };

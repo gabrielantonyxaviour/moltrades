@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import Image from "next/image"
 import { QRCodeSVG } from "qrcode.react"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { useWallets as useSolanaWallets } from "@privy-io/react-auth/solana"
@@ -29,11 +30,28 @@ interface ChainOption {
   id: string
   name: string
   icon: string
-  address: string
-  type: "EVM" | "Solana" | "SUI" | "Bitcoin"
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  wallet?: any
+  category: "EVM" | "Non-EVM"
+  nativeCurrency: string
+  addressType: "ethereum" | "solana" | "sui" | "bitcoin"
 }
+
+const ALL_CHAINS: ChainOption[] = [
+  // EVM Chains
+  { id: "ethereum", name: "Ethereum", icon: "/chains/ethereum.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "arbitrum", name: "Arbitrum", icon: "/chains/arbitrum.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "base", name: "Base", icon: "/chains/base.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "optimism", name: "Optimism", icon: "/chains/optimism.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "polygon", name: "Polygon", icon: "/chains/polygon.png", category: "EVM", nativeCurrency: "MATIC", addressType: "ethereum" },
+  { id: "bsc", name: "BSC", icon: "/chains/bsc.png", category: "EVM", nativeCurrency: "BNB", addressType: "ethereum" },
+  { id: "avalanche", name: "Avalanche", icon: "/chains/avalanche.png", category: "EVM", nativeCurrency: "AVAX", addressType: "ethereum" },
+  { id: "gnosis", name: "Gnosis", icon: "/chains/gnosis.png", category: "EVM", nativeCurrency: "xDAI", addressType: "ethereum" },
+  { id: "scroll", name: "Scroll", icon: "/chains/scroll.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  { id: "linea", name: "Linea", icon: "/chains/linea.png", category: "EVM", nativeCurrency: "ETH", addressType: "ethereum" },
+  // Non-EVM Chains
+  { id: "solana", name: "Solana", icon: "/chains/solana.png", category: "Non-EVM", nativeCurrency: "SOL", addressType: "solana" },
+  { id: "sui", name: "SUI", icon: "/chains/sui.png", category: "Non-EVM", nativeCurrency: "SUI", addressType: "sui" },
+  { id: "bitcoin", name: "Bitcoin", icon: "/chains/bitcoin.png", category: "Non-EVM", nativeCurrency: "BTC", addressType: "bitcoin" },
+]
 
 export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) {
   const { user, fundWallet } = usePrivy()
@@ -50,80 +68,48 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
   const [withdrawAmount, setWithdrawAmount] = useState("")
   const [isSending, setIsSending] = useState(false)
 
-  // Build chain options from all wallets
-  const chainOptions = useMemo<ChainOption[]>(() => {
-    const options: ChainOption[] = []
-
-    // EVM wallet (Ethereum/Base/etc)
-    const evmEmbedded = evmWallets.find((w) => w.walletClientType === "privy")
-    if (evmEmbedded) {
-      options.push({
-        id: "evm",
-        name: "Ethereum",
-        icon: "⟠",
-        address: evmEmbedded.address,
-        type: "EVM",
-        wallet: evmEmbedded,
-      })
+  // Get wallet addresses based on chain type
+  const getWalletAddress = (addressType: ChainOption["addressType"]): string | null => {
+    switch (addressType) {
+      case "ethereum": {
+        const evmEmbedded = evmWallets.find((w) => w.walletClientType === "privy")
+        return evmEmbedded?.address || null
+      }
+      case "solana": {
+        const solanaEmbedded = solanaWallets.find((w) => {
+          const name = w.standardWallet?.name ?? ""
+          return name.toLowerCase().includes("privy")
+        })
+        return solanaEmbedded?.address || null
+      }
+      case "sui": {
+        const suiWallet = (user?.linkedAccounts ?? []).find(
+          (a) => a.type === "wallet" && "chainType" in a && a.chainType === "sui"
+        )
+        return suiWallet?.address || null
+      }
+      case "bitcoin": {
+        const btcWallet = (user?.linkedAccounts ?? []).find(
+          (a) => a.type === "wallet" && "chainType" in a && a.chainType === "bitcoin-segwit"
+        )
+        return btcWallet?.address || null
+      }
+      default:
+        return null
     }
-
-    // Solana wallet
-    const solanaEmbedded = solanaWallets.find((w) => {
-      const name = w.standardWallet?.name ?? ""
-      return name.toLowerCase().includes("privy")
-    })
-    if (solanaEmbedded) {
-      options.push({
-        id: "solana",
-        name: "Solana",
-        icon: "◎",
-        address: solanaEmbedded.address,
-        type: "Solana",
-        wallet: solanaEmbedded,
-      })
-    }
-
-    // SUI wallet
-    const suiWallet = (user?.linkedAccounts ?? []).find(
-      (a) => a.type === "wallet" && "chainType" in a && a.chainType === "sui"
-    )
-    if (suiWallet) {
-      options.push({
-        id: "sui",
-        name: "SUI",
-        icon: "🔷",
-        address: suiWallet.address,
-        type: "SUI",
-      })
-    }
-
-    // Bitcoin wallet
-    const btcWallet = (user?.linkedAccounts ?? []).find(
-      (a) => a.type === "wallet" && "chainType" in a && a.chainType === "bitcoin-segwit"
-    )
-    if (btcWallet) {
-      options.push({
-        id: "bitcoin",
-        name: "Bitcoin",
-        icon: "₿",
-        address: btcWallet.address,
-        type: "Bitcoin",
-      })
-    }
-
-    return options
-  }, [evmWallets, solanaWallets, user])
+  }
 
   // Filter chains by search query
   const filteredChains = useMemo(() => {
-    if (!searchQuery) return chainOptions
+    if (!searchQuery) return ALL_CHAINS
     const query = searchQuery.toLowerCase()
-    return chainOptions.filter(
+    return ALL_CHAINS.filter(
       (chain) =>
         chain.name.toLowerCase().includes(query) ||
-        chain.type.toLowerCase().includes(query)
+        chain.category.toLowerCase().includes(query) ||
+        chain.nativeCurrency.toLowerCase().includes(query)
     )
-  }, [chainOptions, searchQuery])
+  }, [searchQuery])
 
   const copyAddress = async (address: string) => {
     await navigator.clipboard.writeText(address)
@@ -133,34 +119,44 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
   }
 
   const handleFundWithPrivy = async () => {
-    if (!selectedChain?.wallet) return
-    await fundWallet({ address: selectedChain.wallet.address })
+    if (!selectedChain || selectedChain.addressType !== "ethereum") return
+    const address = getWalletAddress("ethereum")
+    if (!address) return
+    await fundWallet({ address })
   }
 
   const handleWithdraw = async () => {
     if (!selectedChain || !withdrawAddress || !withdrawAmount) return
 
+    const walletAddress = getWalletAddress(selectedChain.addressType)
+    if (!walletAddress) {
+      toast.error("Wallet not found for this chain")
+      return
+    }
+
     setIsSending(true)
     try {
-      if (selectedChain.type === "EVM" && selectedChain.wallet) {
+      if (selectedChain.addressType === "ethereum") {
         // EVM withdrawal
-        const provider = await selectedChain.wallet.getEthereumProvider()
+        const evmWallet = evmWallets.find((w) => w.walletClientType === "privy")
+        if (!evmWallet) throw new Error("EVM wallet not found")
+
+        const provider = await evmWallet.getEthereumProvider()
         await provider.request({
           method: "eth_sendTransaction",
           params: [
             {
-              from: selectedChain.wallet.address,
+              from: evmWallet.address,
               to: withdrawAddress,
               value: `0x${parseEther(withdrawAmount).toString(16)}`,
             },
           ],
         })
         toast.success("Transaction sent successfully!")
-      } else if (selectedChain.type === "Solana" && selectedChain.wallet) {
-        // Solana withdrawal - simplified
+      } else if (selectedChain.addressType === "solana") {
         toast.error("Solana withdrawals coming soon!")
       } else {
-        toast.error(`${selectedChain.type} withdrawals not yet supported`)
+        toast.error(`${selectedChain.name} withdrawals not yet supported`)
       }
 
       setWithdrawAddress("")
@@ -192,13 +188,15 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
     onOpenChange(open)
   }
 
+  const currentAddress = selectedChain ? getWalletAddress(selectedChain.addressType) : null
+
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-heading tracking-wider">
             {selectedChain ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -207,8 +205,17 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-2xl">{selectedChain.icon}</span>
+                <Image
+                  src={selectedChain.icon}
+                  alt={selectedChain.name}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full"
+                />
                 <span>{selectedChain.name}</span>
+                <Badge variant="secondary" className="text-xs">
+                  {selectedChain.category}
+                </Badge>
               </div>
             ) : (
               "Deposit / Withdraw"
@@ -241,22 +248,41 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-3 pb-4">
-                {filteredChains.map((chain) => (
-                  <Card
-                    key={chain.id}
-                    className="cursor-pointer hover:border-primary transition-all"
-                    onClick={() => setSelectedChain(chain)}
-                  >
-                    <CardContent className="p-4 text-center space-y-2">
-                      <div className="text-3xl">{chain.icon}</div>
-                      <p className="font-heading text-sm font-bold">{chain.name}</p>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {chain.type}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="grid grid-cols-4 gap-3 pb-4 max-h-[400px] overflow-y-auto">
+                {filteredChains.map((chain) => {
+                  const hasWallet = getWalletAddress(chain.addressType) !== null
+                  return (
+                    <Card
+                      key={chain.id}
+                      className={`cursor-pointer hover:border-primary transition-all ${
+                        !hasWallet ? "opacity-50" : ""
+                      }`}
+                      onClick={() => {
+                        if (!hasWallet) {
+                          toast.error(`${chain.name} wallet not available. Please create a wallet first.`)
+                          return
+                        }
+                        setSelectedChain(chain)
+                      }}
+                    >
+                      <CardContent className="p-4 text-center space-y-2">
+                        <Image
+                          src={chain.icon}
+                          alt={chain.name}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 mx-auto rounded-full"
+                        />
+                        <p className="font-heading text-sm font-bold">{chain.name}</p>
+                        {!hasWallet && (
+                          <Badge variant="outline" className="text-[9px] px-1">
+                            No Wallet
+                          </Badge>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
 
               {filteredChains.length === 0 && (
@@ -268,11 +294,11 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
           )}
 
           {/* Deposit View */}
-          {selectedChain && (
+          {selectedChain && currentAddress && (
             <TabsContent value="deposit" className="space-y-4 pt-4">
               <div className="flex flex-col items-center gap-4">
                 <div className="rounded-lg bg-white p-4">
-                  <QRCodeSVG value={selectedChain.address} size={200} />
+                  <QRCodeSVG value={currentAddress} size={200} />
                 </div>
 
                 <div className="w-full space-y-2">
@@ -281,13 +307,13 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
                   </Label>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 truncate rounded-md bg-muted px-3 py-2 text-xs font-mono">
-                      {selectedChain.address}
+                      {currentAddress}
                     </code>
                     <Button
                       variant="outline"
                       size="icon"
                       className="shrink-0"
-                      onClick={() => copyAddress(selectedChain.address)}
+                      onClick={() => copyAddress(currentAddress)}
                     >
                       {copied ? (
                         <Check className="h-4 w-4" />
@@ -298,7 +324,7 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
                   </div>
                 </div>
 
-                {selectedChain.type === "EVM" && (
+                {selectedChain.addressType === "ethereum" && (
                   <Button
                     className="w-full gap-2 font-heading"
                     onClick={handleFundWithPrivy}
@@ -310,7 +336,9 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
 
                 <div className="w-full p-3 bg-muted/50 rounded-lg">
                   <p className="text-xs text-muted-foreground text-center">
-                    Send only {selectedChain.name} to this address. Sending other assets may result in permanent loss.
+                    Send only <span className="font-bold">{selectedChain.nativeCurrency}</span> and tokens on{" "}
+                    <span className="font-bold">{selectedChain.name}</span> to this address. Sending other assets may
+                    result in permanent loss.
                   </p>
                 </div>
               </div>
@@ -318,7 +346,7 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
           )}
 
           {/* Withdraw View */}
-          {selectedChain && (
+          {selectedChain && currentAddress && (
             <TabsContent value="withdraw" className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="withdraw-address" className="font-heading text-sm">
@@ -327,11 +355,11 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
                 <Input
                   id="withdraw-address"
                   placeholder={
-                    selectedChain.type === "EVM"
+                    selectedChain.addressType === "ethereum"
                       ? "0x..."
-                      : selectedChain.type === "Solana"
+                      : selectedChain.addressType === "solana"
                       ? "Solana address..."
-                      : selectedChain.type === "SUI"
+                      : selectedChain.addressType === "sui"
                       ? "SUI address..."
                       : "Bitcoin address..."
                   }
@@ -343,7 +371,7 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
 
               <div className="space-y-2">
                 <Label htmlFor="withdraw-amount" className="font-heading text-sm">
-                  Amount ({selectedChain.type === "EVM" ? "ETH" : selectedChain.name})
+                  Amount ({selectedChain.nativeCurrency})
                 </Label>
                 <Input
                   id="withdraw-amount"
@@ -359,7 +387,7 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
               <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <p className="text-xs font-bold">⚠️ Warning</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Double-check the destination address. Transactions cannot be reversed.
+                  Double-check the destination address and network. Transactions cannot be reversed.
                 </p>
               </div>
 
@@ -368,7 +396,7 @@ export function FundWalletDialog({ open, onOpenChange }: FundWalletDialogProps) 
                 disabled={!withdrawAddress || !withdrawAmount || isSending}
                 onClick={handleWithdraw}
               >
-                {isSending ? "Sending..." : `Send ${selectedChain.name}`}
+                {isSending ? "Sending..." : `Send ${selectedChain.nativeCurrency}`}
               </Button>
             </TabsContent>
           )}

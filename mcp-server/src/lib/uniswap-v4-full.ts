@@ -328,7 +328,7 @@ export function initializeClients(chainId: number = 1301): {
   _currentChain = chain;
   _currentAccount = account;
 
-  console.log(`[V4] Initialized on ${chain.name} (${chainId}) with address: ${account.address}`);
+  console.error(`[V4] Initialized on ${chain.name} (${chainId}) with address: ${account.address}`);
 
   return {
     publicClient: _publicClient,
@@ -778,7 +778,7 @@ export async function executeSwap(
       }) as bigint;
 
       if (erc20Allowance < amountInWei) {
-        console.log('[V4] Step 1: Approving token to Permit2...');
+        console.error('[V4] Step 1: Approving token to Permit2...');
         const approveTx = await walletClient.writeContract({
           chain: getCurrentChain(),
           account: getCurrentAccount(),
@@ -788,7 +788,7 @@ export async function executeSwap(
           args: [contracts.PERMIT2, amountInWei * 10n], // Approve more for future txs
         });
         await publicClient.waitForTransactionReceipt({ hash: approveTx });
-        console.log('[V4] ERC20 approval confirmed:', approveTx);
+        console.error('[V4] ERC20 approval confirmed:', approveTx);
       }
 
       // Check Permit2 allowance for Universal Router
@@ -803,7 +803,7 @@ export async function executeSwap(
       const needsPermit2Approval = permit2Amount < amountInWei || permit2Expiration < currentTime;
 
       if (needsPermit2Approval) {
-        console.log('[V4] Step 2: Setting Permit2 allowance for Universal Router...');
+        console.error('[V4] Step 2: Setting Permit2 allowance for Universal Router...');
         // Set expiration to 30 days from now
         const expiration = currentTime + 30 * 24 * 60 * 60;
         const permit2ApproveTx = await walletClient.writeContract({
@@ -815,7 +815,7 @@ export async function executeSwap(
           args: [tokenIn, contracts.UNIVERSAL_ROUTER, amountInWei * 10n, expiration],
         });
         await publicClient.waitForTransactionReceipt({ hash: permit2ApproveTx });
-        console.log('[V4] Permit2 approval confirmed:', permit2ApproveTx);
+        console.error('[V4] Permit2 approval confirmed:', permit2ApproveTx);
       }
     }
 
@@ -844,16 +844,16 @@ export async function executeSwap(
     const inputs = [v4SwapInput];
 
     if (!isNativeETH) {
-      console.log('[V4] Executing ERC20 swap...');
-      console.log('[V4] Command: 0x10 (V4_SWAP)');
-      console.log('[V4] V4Router will use Permit2 to pull tokens from user');
+      console.error('[V4] Executing ERC20 swap...');
+      console.error('[V4] Command: 0x10 (V4_SWAP)');
+      console.error('[V4] V4Router will use Permit2 to pull tokens from user');
     } else {
-      console.log('[V4] Executing native ETH swap...');
-      console.log('[V4] Command: 0x10 (V4_SWAP)');
+      console.error('[V4] Executing native ETH swap...');
+      console.error('[V4] Command: 0x10 (V4_SWAP)');
     }
 
-    console.log('[V4] Actions: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL');
-    console.log('[V4] zeroForOne:', zeroForOne);
+    console.error('[V4] Actions: SWAP_EXACT_IN_SINGLE + SETTLE_ALL + TAKE_ALL');
+    console.error('[V4] zeroForOne:', zeroForOne);
 
     const txHash = await walletClient.writeContract({
       chain: getCurrentChain(),
@@ -924,7 +924,7 @@ export async function initializePool(
       };
     }
 
-    console.log('[V4] Initializing new pool...');
+    console.error('[V4] Initializing new pool...');
     const txHash = await walletClient.writeContract({
       chain: getCurrentChain(),
       account: getCurrentAccount(),
@@ -935,7 +935,7 @@ export async function initializePool(
     });
 
     await publicClient.waitForTransactionReceipt({ hash: txHash });
-    console.log('[V4] Pool initialized:', txHash);
+    console.error('[V4] Pool initialized:', txHash);
 
     return {
       success: true,
@@ -999,7 +999,7 @@ export async function addLiquidity(
         }) as bigint;
 
         if (allowance < amount) {
-          console.log(`[V4] Approving ${token}...`);
+          console.error(`[V4] Approving ${token}...`);
           const approveTx = await walletClient.writeContract({
             chain: getCurrentChain(),
             account: getCurrentAccount(),
@@ -1014,7 +1014,7 @@ export async function addLiquidity(
     }
 
     // Mint position
-    console.log('[V4] Adding liquidity...');
+    console.error('[V4] Adding liquidity...');
 
     // Use a simplified approach - encode the mint call
     const mintParams = {
@@ -1110,7 +1110,7 @@ export async function removeLiquidity(
   }
 
   try {
-    console.log('[V4] Removing liquidity...');
+    console.error('[V4] Removing liquidity...');
 
     const txHash = await walletClient.writeContract({
       chain: getCurrentChain(),

@@ -119,8 +119,14 @@ export default function AgentProfilePage() {
   return (
     <div className="min-h-screen">
       {/* Cover / Domain Visual */}
-      <div className="h-32 md:h-48 bg-gradient-to-br from-primary/20 via-background to-accent/20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
+      <div className="h-32 md:h-48 relative overflow-hidden">
+        {agent.cover ? (
+          <img src={agent.cover} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-accent/20">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
+          </div>
+        )}
       </div>
 
       {/* Profile Header */}

@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Upload, Loader2, Check, AlertCircle } from "lucide-react"
+import { Upload, Loader2, Check, AlertCircle, ImagePlus } from "lucide-react"
 import { toast } from "sonner"
 
 export default function CreateAgentPage() {
@@ -24,6 +24,7 @@ export default function CreateAgentPage() {
   const { authenticated, login, user } = usePrivy()
   const { wallets } = useWallets()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
 
   const [isCreating, setIsCreating] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
@@ -36,6 +37,8 @@ export default function CreateAgentPage() {
   const [bio, setBio] = useState("")
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string>("")
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState<string>("")
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +63,29 @@ export default function CreateAgentPage() {
     const reader = new FileReader()
     reader.onload = () => {
       setAvatarPreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleCoverChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      toast.error("Invalid file type. Please upload PNG, JPG, or WEBP.")
+      return
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("File size exceeds 4MB limit")
+      return
+    }
+
+    setCoverFile(file)
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setCoverPreview(reader.result as string)
     }
     reader.readAsDataURL(file)
   }
@@ -94,7 +120,7 @@ export default function CreateAgentPage() {
     setIsCreating(true)
 
     try {
-      // Step 1: Upload avatar to IPFS
+      // Step 1: Upload avatar
       setIsUploadingAvatar(true)
       const formData = new FormData()
       formData.append("file", avatarFile)
@@ -111,7 +137,24 @@ export default function CreateAgentPage() {
       const { avatarUrl } = await uploadRes.json()
       setIsUploadingAvatar(false)
 
-      // Step 2: Create agent
+      // Step 2: Upload cover (optional)
+      let coverUrl = ""
+      if (coverFile) {
+        const coverFormData = new FormData()
+        coverFormData.append("file", coverFile)
+
+        const coverRes = await fetch("/api/upload/cover", {
+          method: "POST",
+          body: coverFormData,
+        })
+
+        if (coverRes.ok) {
+          const coverData = await coverRes.json()
+          coverUrl = coverData.coverUrl
+        }
+      }
+
+      // Step 3: Create agent
       const walletAddress = wallets[0].address
       const createdBy = user?.id || user?.email?.address || "unknown"
 
@@ -123,6 +166,7 @@ export default function CreateAgentPage() {
           handle,
           bio,
           avatar: avatarUrl,
+          cover: coverUrl,
           creatorAddress: walletAddress,
           createdBy,
         }),
@@ -238,6 +282,34 @@ export default function CreateAgentPage() {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Cover Upload (Optional) */}
+          <div className="space-y-4">
+            <Label className="font-heading text-sm tracking-wide">Cover Image</Label>
+            <div
+              className="relative w-full aspect-[4/1] rounded-lg border-2 border-dashed border-border/50 overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => coverInputRef.current?.click()}
+            >
+              {coverPreview ? (
+                <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                  <ImagePlus className="h-8 w-8" />
+                  <span className="text-xs">Click to upload cover image</span>
+                </div>
+              )}
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleCoverChange}
+                className="hidden"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Optional. PNG, JPG, or WEBP. Max 4MB. Recommended 1200x300.
+            </p>
           </div>
 
           {/* Agent Name */}

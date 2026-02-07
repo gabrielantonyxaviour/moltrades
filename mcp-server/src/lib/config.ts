@@ -79,7 +79,7 @@ export function initializeLifiSDK(): { address: Address } {
   const solanaKey = process.env.SOLANA_PRIVATE_KEY;
   if (solanaKey) {
     try {
-      providers.push(Solana({ getWalletClient: async () => ({ sendTransaction: async () => '' }) }));
+      providers.push(Solana());
       console.error('[Config] Solana provider registered');
     } catch (e) {
       console.error('[Config] Solana provider registration failed:', e);

@@ -76,7 +76,8 @@ export async function waitForBridgeCompletion(
         return {
           status: 'DONE',
           sourceTxHash: txHash,
-          destinationTxHash: status.receiving?.txHash,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          destinationTxHash: (status.receiving as any)?.txHash,
           bridge,
           message: 'Bridge completed successfully',
         };
